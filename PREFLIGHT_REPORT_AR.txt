@@ -1,0 +1,15 @@
+PRE-FLIGHT REVIEW — Unified Studio Cloud
+
+Automated checks run against the supplied package:
+- Python syntax: 12 Python files parsed; no syntax errors.
+- Required cloud/app files: all present.
+- Dockerfile: Python 3.12 base image; exposes container port 8000 by default.
+- Compose: persistent named volumes configured for /app/data and /app/outputs.
+- Secrets: example env only; no .env file packaged.
+
+NOT VERIFIED:
+- Docker image build and container startup were not run; Docker engine is unavailable in this environment.
+- No public cloud deployment, domain, TLS endpoint, or mobile-device test has been performed.
+- LTX/Seedance video generation and face swap are not connected as cloud inference endpoints in this package.
+
+Decision: this is a source bundle prepared for deployment, NOT a verified live cloud service. Do not pay for hosting until the Docker build is tested on a Docker-capable environment or a free trial environment.

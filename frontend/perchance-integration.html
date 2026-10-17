@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Perchance integration notes · Unified Studio</title>
+  <style>
+    :root{font:16px/1.6 system-ui,sans-serif;color:#e9edf5;background:#111722}body{max-width:900px;margin:0 auto;padding:28px 20px}a{color:#9bc5ff}h1,h2{line-height:1.2}article{padding:18px;margin:14px 0;border:1px solid #344057;border-radius:12px;background:#182130}table{border-collapse:collapse;width:100%;display:block;overflow:auto}th,td{text-align:left;vertical-align:top;padding:9px;border:1px solid #39475e}small{color:#bac7d9}.ar{direction:rtl;text-align:right}
+  </style>
+</head>
+<body>
+  <p><a href="/">← Unified Studio</a></p>
+  <h1>Perchance integration boundary</h1>
+  <p>These are user-initiated links. Unified Studio does not send prompts, files, or credentials to Perchance.</p>
+  <article><h2>Verified plugins</h2><ul>
+    <li><a href="https://perchance.org/ai-text-plugin" target="_blank" rel="noopener noreferrer">AI Text Plugin</a> — text-generation component for Perchance generators.</li>
+    <li><a href="https://perchance.org/text-to-image-plugin" target="_blank" rel="noopener noreferrer">Text-to-Image Plugin</a> — image-generation component for Perchance generators.</li>
+  </ul><p>No official external API or standalone runtime was found for either plugin.</p></article>
+  <article><h2>Hosted generators</h2><ul>
+    <li><a href="https://perchance.org/ai-story-generator" target="_blank" rel="noopener noreferrer">AI Story Generator</a> — hosted story tool.</li>
+    <li><a href="https://perchance.org/ai-rpg" target="_blank" rel="noopener noreferrer">AI RPG</a> — hosted role-playing tool.</li>
+  </ul><p>These are generator pages, not plugin APIs.</p></article>
+  <article><h2>Why they are not called from the app</h2>
+    <p>The <a href="https://perchance.org/terms-of-service" target="_blank" rel="noopener noreferrer">published Perchance Terms of Service</a> prohibit scripted or bot access. The official pages reviewed describe plugins for use within Perchance generators; they do not document a supported API for a separate app. Unified Studio therefore does not call undocumented endpoints, automate the pages, or claim an external generation succeeded.</p>
+  </article>
+  <article class="ar" lang="ar"><h2>حدود الدمج</h2><p>هذه روابط يفتحها المستخدم يدويًا. لا يرسل التطبيق المطالبات أو الملفات أو مفاتيح الحساب إلى Perchance. الإضافات الموثقة تعمل ضمن مولدات Perchance؛ لم أجد واجهة API رسمية موثقة لتطبيق خارجي. لذلك لا يجري التطبيق استدعاءات مخفية أو آلية.</p></article>
+</body>
+</html>

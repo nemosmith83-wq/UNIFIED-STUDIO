@@ -1,0 +1,27 @@
+# Unified Studio — Production Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core LLM (Ollama — LOCAL, 100% FREE, NO API KEY)
+# Download: https://ollama.ai
+# Run: ollama serve
+# Pull model: ollama pull mistral
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# FastAPI Web Server (optimized for 8GB RAM)
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+python-multipart>=0.0.9
+
+# Web Search (DuckDuckGo — FREE, no API key)
+ddgs>=0.1.0
+
+# Image Processing
+Pillow>=10.0.0
+beautifulsoup4>=4.12.0
+pypdf>=4.0.0
+python-docx>=1.1.0
+
+# HTTP & utilities
+urllib3>=2.1.0

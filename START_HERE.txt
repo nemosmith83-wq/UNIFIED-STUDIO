@@ -1,0 +1,34 @@
+═══════════════════════════════════════════════════════════════════════════
+  UNIFIED STUDIO — START HERE
+═══════════════════════════════════════════════════════════════════════════
+
+Unified Studio provides local AI chat, image generation/editing, code tools,
+web search, file processing, talent workflows, and automation definitions.
+
+FIRST TIME SETUP:
+─────────────────────────────────────────────────────────────────────────
+
+1. Run INSTALL.bat
+   └─ Installs the Python dependencies.
+   └─ Creates .env from .env.example when needed.
+
+2. Run START.bat
+   └─ Starts the FastAPI server.
+   └─ Opens the studio in your browser.
+
+LOCAL AI:
+─────────────────────────────────────────────────────────────────────────
+
+• Ollama is used for chat and agent routing.
+• No Groq API key is required.
+• Run SETUP_OLLAMA.bat once to install/pull the configured local model.
+
+OPTIONAL IMAGE PRIORITY:
+─────────────────────────────────────────────────────────────────────────
+
+• Stable Horde can use HORDE_API_KEY for priority access.
+• Pollinations remains available without a key when the service is reachable.
+
+═══════════════════════════════════════════════════════════════════════════
+TL;DR: Run INSTALL.bat once, then START.bat whenever you want to use it.
+═══════════════════════════════════════════════════════════════════════════

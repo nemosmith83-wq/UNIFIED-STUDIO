@@ -1,0 +1,16 @@
+UNIFIED STUDIO — MOBILE QUICK START
+
+1. Put the Unified Studio folder on the Windows PC that will run the backend.
+2. Make sure the phone/tablet and PC are on the same private Wi-Fi/LAN.
+3. Double-click START_MOBILE.bat.
+4. The window prints the PC's LAN address, for example:
+   http://192.168.1.20:5000
+5. Open that address in the phone/tablet browser.
+6. Keep START_MOBILE.bat running while the phone is connected.
+
+The mobile build is the same Unified Studio application with a touch-first responsive UI.
+PromptVault Pro is included and its internal mobile layout is retained.
+
+Security note:
+START_MOBILE.bat exposes the unauthenticated local application API to the local network.
+Use it only on a trusted private network. Do not port-forward port 5000 to the public internet.

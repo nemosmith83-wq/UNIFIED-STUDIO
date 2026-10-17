@@ -1,0 +1,112 @@
+═══════════════════════════════════════════════════════════════════════════
+  🚀 UNIFIED STUDIO - QUICK START (NO API KEYS!)
+═══════════════════════════════════════════════════════════════════════════
+
+WHAT YOU NEED:
+  • Python 3.10+ (already have if START.bat works)
+  • Ollama (local AI) - FREE from https://ollama.ai
+  • ~5 minutes of setup time
+  • ~5GB disk for AI model (one-time download)
+
+===== STEP 1: Download Ollama (3 minutes) =====
+
+1. Go to: https://ollama.ai
+2. Download the Windows version
+3. Run the installer
+4. Close when done
+
+===== STEP 2: Setup Ollama (2 minutes) =====
+
+Double-click this file (in this folder):
+  → SETUP_OLLAMA.bat
+
+This will:
+  ✓ Check if Ollama is installed
+  ✓ Start Ollama daemon
+  ✓ Download Mistral model (~5GB, one-time)
+
+===== STEP 3: Launch Studio (click once) =====
+
+Double-click:
+  → START.bat
+
+This will:
+  ✓ Check Python
+  ✓ Install dependencies
+  ✓ Connect to Ollama
+  ✓ Start backend server
+  ✓ Open browser automatically
+
+===== WHAT YOU GET =====
+
+✅ Chat with AI (powered by local Mistral model)
+✅ Generate images (Pollinations - FREE API)
+✅ Execute Python code (sandboxed)
+✅ Search the web (DuckDuckGo - FREE)
+✅ Draw/edit images (canvas editor)
+✅ Save conversation history
+
+===== 100% FREE? YES! =====
+
+No subscription needed. No API keys. No cloud service.
+Everything runs on YOUR computer.
+
+Internet needed for:
+  • Image generation (Pollinations.ai)
+  • Web search (DuckDuckGo)
+  • Downloading model (first time only)
+
+AI chat works completely offline once Mistral is downloaded.
+
+===== TROUBLESHOOTING =====
+
+❌ "Ollama not found"
+   → Download from https://ollama.ai and run installer
+
+❌ "Can't connect to Ollama"
+   → Open new terminal and run: ollama serve
+   → Keep that window open while using Unified Studio
+
+❌ "Mistral model not found"
+   → Run SETUP_OLLAMA.bat again
+   → Or manually: ollama pull mistral
+
+❌ "Port 5000 already in use"
+   → Another app is using port 5000
+   → Edit START.bat to change UNIFIED_PORT=5001
+
+===== WHAT IS OLLAMA? =====
+
+Ollama = local AI runtime
+  • Like ChatGPT but running on your computer
+  • Fast (7B model = 5-10s response time on i5)
+  • Private (data never leaves your machine)
+  • Works offline
+  • 100% open source and free
+
+Mistral = the AI model we're using
+  • 7 billion parameters (lightweight)
+  • Good conversational ability
+  • Fast on 8GB RAM
+  • Can be swapped for other models
+
+===== MODELS YOU CAN TRY =====
+
+Fast (good enough):
+  ollama pull mistral        (7B - recommended)
+  ollama pull neural-chat    (7B - conversational)
+
+Powerful (slower):
+  ollama pull llama2         (13B - better quality)
+  ollama pull dolphin-mixtral (47B - most capable)
+
+Switch model by editing .env:
+  OLLAMA_MODEL=neural-chat
+
+===== NEXT STEPS =====
+
+1. SETUP_OLLAMA.bat
+2. START.bat  
+3. Use the web UI!
+
+═══════════════════════════════════════════════════════════════════════════

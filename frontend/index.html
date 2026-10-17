@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Studio</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <section id="authScreen" class="auth-screen" aria-live="polite">
+        <div class="auth-card">
+            <div class="auth-brand">Unified Studio</div>
+            <h1 id="authTitle">Sign in</h1>
+            <p id="authSubtitle">Access your private workspace.</p>
+            <form id="authForm" autocomplete="on">
+                <label id="displayNameWrap" class="auth-field hidden">Display name<input id="authDisplayName" maxlength="80" autocomplete="name"></label>
+                <label class="auth-field">Username<input id="authUsername" required minlength="3" maxlength="32" autocomplete="username"></label>
+                <label class="auth-field">Password<input id="authPassword" type="password" required maxlength="200" autocomplete="current-password"></label>
+                <button id="authSubmit" class="btn-primary" type="submit">Sign in</button>
+            </form>
+            <div id="authMessage" class="auth-message" role="alert"></div>
+            <button id="authToggle" class="auth-toggle" type="button">Create an account</button>
+        </div>
+    </section>
+    <script>document.documentElement.classList.add('auth-loading');</script>
+    <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" aria-label="Open navigation" aria-controls="appSidebar" aria-expanded="false">☰</button>
+    <div id="mobileNavOverlay" class="mobile-nav-overlay" hidden></div>
+    <div id="appToast" class="app-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="appShell" class="app-shell auth-hidden">
+        <aside id="appSidebar" class="sidebar">
+            <div class="brand">
+                <h1>Unified Studio</h1>
+                <p>Agent, Comic Forge, Autonomy, Memory</p>
+            </div>
+
+            <nav class="nav-tabs">
+                <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+                <button class="nav-btn" data-tab="chat">Chat</button>
+                <button class="nav-btn" data-tab="prompts">Prompt Vault</button>
+                <button class="nav-btn" data-tab="promptvault-pro">PromptVault Pro</button>
+                <button class="nav-btn" data-tab="perchance">Perchance Resources</button>
+                <button class="nav-btn" data-tab="talent">Talent Helper</button>
+                <button class="nav-btn" data-tab="comic">Comic Forge</button>
+                <button class="nav-btn" data-tab="image">Image Lab</button>
+                <button class="nav-btn" data-tab="code">Code</button>
+                <button class="nav-btn" data-tab="search">Search</button>
+                <button class="nav-btn" data-tab="files">Files</button>
+                <button class="nav-btn" data-tab="memory">Memory</button>
+                <button class="nav-btn" data-tab="automation">Automation</button>
+                <button class="nav-btn" data-tab="providers">Providers</button>
+            </nav>
+
+            <section class="side-panel">
+                <label for="globalAgent">Chat agent</label>
+                <select id="globalAgent">
+                    <option value="">Auto route</option>
+                </select>
+            </section>
+
+            <section class="side-panel">
+                <p id="serverStatus">Connecting...</p>
+                <p id="sessionId"></p>
+                <p id="currentUser"></p>
+                <button id="logoutBtn" class="btn-secondary" type="button">Sign out</button>
+            </section>
+        </aside>
+
+        <main class="workspace">
+            <section id="dashboard-tab" class="tab-content active">
+                <header class="section-header dashboard-header">
+                    <div>
+                        <h2>Creative Workspace</h2>
+                        <p>One place for prompts, images, comics, experiments, and reusable ideas.</p>
+                    </div>
+                    <button id="dashboardNewPrompt" class="btn-primary">Save a Prompt</button>
+                </header>
+                <div class="dashboard-grid">
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Saved prompts</span>
+                        <strong id="dashboardPromptCount">0</strong>
+                        <button class="card-link" data-open-tab="prompts">Open Prompt Vault</button>
+                    </article>
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Session images</span>
+                        <strong id="dashboardImageCount">0</strong>
+                        <button class="card-link" data-open-tab="image">Open Image Lab</button>
+                    </article>
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Comic panels</span>
+                        <strong id="dashboardPanelCount">0</strong>
+                        <button class="card-link" data-open-tab="comic">Continue Comic Forge</button>
+                    </article>
+                </div>
+                <div class="dashboard-grid dashboard-actions">
+                    <button class="dashboard-action" data-open-tab="chat"><strong>Chat with an agent</strong><span>Explore an idea or turn a rough brief into a plan.</span></button>
+                    <button class="dashboard-action" data-open-tab="comic"><strong>Build a comic</strong><span>Import a script, keep a visual style, and generate panels.</span></button>
+                    <button class="dashboard-action" data-open-tab="image"><strong>Create an image</strong><span>Generate, edit, caption, and download a visual.</span></button>
+                </div>
+            </section>
+
+            <section id="providers-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>LLM Provider Management</h2>
+                    <p>Monitor providers, select the active LLM, and configure an ordered fallback chain.</p>
+                </header>
+                <div class="provider-toolbar">
+                    <div class="tool-panel">
+                        <h3>Active Provider</h3>
+                        <label for="activeProviderSelect">Primary provider</label>
+                        <select id="activeProviderSelect"></select>
+                        <button id="switchProvider" class="btn-primary">Switch Provider</button>
+                        <button id="autoSelectProvider" class="btn-secondary">Select Fastest Healthy</button>
+                        <button id="refreshProviders" class="btn-secondary">Refresh Health</button>
+                    </div>
+                    <div class="tool-panel wide">
+                        <h3>Fallback Chain</h3>
+                        <div id="fallbackChain" class="fallback-chain"></div>
+                        <div class="button-row">
+                            <select id="fallbackProviderSelect" aria-label="Fallback provider"></select>
+                            <button id="addFallbackProvider" class="btn-secondary">Add Fallback</button>
+                            <button id="saveFallbackChain" class="btn-primary">Save Fallback Chain</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="providerHealth" class="provider-grid"></div>
+            </section>
+
+            <section id="chat-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>Multi-Agent Chat</h2>
+                    <p>Route to general, search, code, image, research, writer, analyst, coder, or manager agents.</p>
+                </header>
+                <div class="chat-display" id="chatDisplay"></div>
+                <div class="chat-input-box">
+                    <textarea id="chatInput" rows="2" placeholder="Ask anything..."></textarea>
+                    <button id="chatSend" class="btn-primary">Send</button>
+                </div>
+                <div class="button-row">
+                    <button id="clearChat" class="btn-secondary">Clear</button>
+                    <button id="exportChat" class="btn-secondary">Export</button>
+                    <button id="loadHistory" class="btn-secondary">Load History</button>
+                </div>
+            </section>
+
+            <section id="prompts-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>Prompt Vault</h2>
+                    <p>Save your best prompts, find them quickly, and send them back into Comic Forge.</p>
+                </header>
+                <div class="prompt-vault-layout">
+                    <div class="tool-panel">
+                        <h3>Save Prompt</h3>
+                        <input type="text" id="promptName" placeholder="Prompt name">
+                        <select id="promptCategory" aria-label="Prompt category">
+                            <option value="General">General</option>
+                            <option value="Comic">Comic</option>
+                            <option value="Character">Character</option>
+                            <option value="Style">Style</option>
+                            <option value="Image">Image</option>
+                        </select>
+                        <input type="text" id="promptTags" placeholder="Tags, separated by commas">
+                        <textarea id="promptVaultText" rows="10" placeholder="Write or paste a reusable prompt..."></textarea>
+                        <button id="savePrompt" class="btn-primary">Save to Vault</button>
+                        <div class="button-row">
+                            <button id="exportPrompts" class="btn-secondary">Export Vault</button>
+                            <label class="file-button">Import Vault<input type="file" id="importPromptsFile" accept=".json"></label>
+                        </div>
+                    </div>
+                    <div class="tool-panel wide">
+                        <div class="vault-toolbar">
+                            <h3>Saved Prompts</h3>
+                            <input type="search" id="promptSearch" placeholder="Search prompts, tags, or categories">
+                        </div>
+                        <div id="promptVaultList" class="prompt-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="promptvault-pro-tab" class="tab-content promptvault-pro-tab">
+                <header class="section-header">
+                    <div>
+                        <h2>PromptVault Pro</h2>
+                        <p>Integrated full PromptVault Pro workspace · AI Creative Studio · RVC Voice Lab · multilingual prompt library.</p>
+                    </div>
+                    <div class="button-row">
+                        <a class="btn-secondary" href="/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf" target="_blank" rel="noopener noreferrer">PromptVault Guide ↗</a>
+                        <a class="btn-secondary" href="/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf" target="_blank" rel="noopener noreferrer">RVC Guide ↗</a>
+                        <a class="btn-secondary" href="/promptvault" target="_blank" rel="noopener noreferrer">Open Fullscreen ↗</a>
+                    </div>
+                </header>
+                <div class="promptvault-frame-wrap">
+                    <iframe id="promptvaultFrame" title="PromptVault Pro" src="/promptvault" loading="lazy" referrerpolicy="same-origin"></iframe>
+                </div>
+            </section>
+
+            <section id="perchance-tab" class="tab-content">
+                <header class="section-header">
+                    <div>
+                        <h2>Perchance Resources</h2>
+                        <p>Verified Perchance plugins and generators. Open them directly when you choose to use their hosted service.</p>
+                    </div>
+                </header>
+                <div class="dashboard-grid">
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Plugin · text generation</span>
+                        <strong>AI Text Plugin</strong>
+                        <p>Perchance plugin for AI text features inside a Perchance generator.</p>
+                        <a class="card-link" href="https://perchance.org/ai-text-plugin" target="_blank" rel="noopener noreferrer">Open plugin page ↗</a>
+                    </article>
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Plugin · image generation</span>
+                        <strong>Text-to-Image Plugin</strong>
+                        <p>Perchance plugin used by Perchance generators to create images from text prompts.</p>
+                        <a class="card-link" href="https://perchance.org/text-to-image-plugin" target="_blank" rel="noopener noreferrer">Open plugin page ↗</a>
+                    </article>
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Generator · story writing</span>
+                        <strong>AI Story Generator</strong>
+                        <p>Hosted story-generation experience; it is a generator, not a callable plugin API.</p>
+                        <a class="card-link" href="https://perchance.org/ai-story-generator" target="_blank" rel="noopener noreferrer">Open generator ↗</a>
+                    </article>
+                    <article class="dashboard-card">
+                        <span class="dashboard-label">Generator · role-playing</span>
+                        <strong>AI RPG</strong>
+                        <p>Hosted interactive role-playing generator; use it on Perchance itself.</p>
+                        <a class="card-link" href="https://perchance.org/ai-rpg" target="_blank" rel="noopener noreferrer">Open generator ↗</a>
+                    </article>
+                </div>
+                <div class="tool-panel" style="margin-top:1rem">
+                    <h3>Connection and privacy</h3>
+                    <p>These links open Perchance in a separate tab. This app does not send your prompts, files, or account data to Perchance in the background. The plugin pages describe components for Perchance generators; no official external generation API was found, and Perchance's current Terms of Service prohibit automated or scripted access. Do not treat these links as generation integrations.</p>
+                    <p>For local prompt building and saving, use Prompt Vault or PromptVault Pro. For image generation, use Image Lab. PromptVault Pro also includes the guided RVC workflow; connect only to a voice server you started and trust.</p>
+                    <a class="btn-secondary" href="/perchance-integration.html" target="_blank" rel="noopener noreferrer">Read integration notes ↗</a>
+                </div>
+            </section>
+
+            <section id="talent-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>Talent Acquisition Helper</h2>
+                    <p>Evaluate job-relevant fit, explore alternatives, track placements, and create clearer job advertisements.</p>
+                </header>
+                <div class="talent-grid">
+                    <div class="tool-panel">
+                        <h3>1. Candidate CV</h3>
+                        <label class="file-button talent-upload">Upload CV<input type="file" id="talentCvFile" accept=".txt,.md,.html,.htm,.pdf,.docx"></label>
+                        <p id="talentCvStatus" class="muted-note">TXT, HTML, PDF, and DOCX text extraction supported where the optional parser is installed.</p>
+                        <label>Compare against<select id="talentJobSelect" aria-label="Talent job selection"></select></label>
+                        <button id="uploadTalentCv" class="btn-primary">Analyze Candidate</button>
+                    </div>
+                    <div class="tool-panel wide">
+                        <h3>Candidate Assessment</h3>
+                        <div id="talentAssessment" class="talent-result empty-state"><strong>Upload a CV to begin</strong><span>The scores explain the supplied evidence and are not absolute predictions.</span></div>
+                    </div>
+                    <div class="tool-panel">
+                        <h3>Placement Tracking</h3>
+                        <p id="talentPlacementStatus" class="muted-note">Evaluate a candidate, then start a three-month placement record.</p>
+                        <button id="startTalentPlacement" class="btn-primary" disabled>Start Placement Tracking</button>
+                        <div id="talentMilestones" class="milestone-list"></div>
+                    </div>
+                </div>
+                <div class="tool-panel talent-ad-panel">
+                    <h3>Job Advertisement Generator</h3>
+                    <textarea id="talentOffer" rows="8" placeholder="Paste the job offer or job description..."></textarea>
+                    <div class="talent-preferences">
+                        <input id="talentAdTitle" placeholder="Job title (optional)">
+                        <input id="talentAdTarget" placeholder="Target candidate profile">
+                        <select id="talentAdTone" aria-label="Advertisement tone"><option>Professional</option><option>Warm and inclusive</option><option>Direct and concise</option><option>Energetic</option></select>
+                        <select id="talentAdPlatform" aria-label="Advertisement platform"><option>General recruitment platform</option><option>LinkedIn</option><option>Indeed</option><option>Internal careers page</option></select>
+                        <input id="talentAdLanguage" value="English" placeholder="Language">
+                    </div>
+                    <button id="generateTalentAd" class="btn-primary">Generate Advertisement</button>
+                    <textarea id="talentAdOutput" rows="14" class="talent-ad-output" readonly placeholder="Your generated advertisement will appear here..."></textarea>
+                </div>
+            </section>
+
+            <section id="comic-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>Comic Forge</h2>
+                    <p>Import scripts, add style/character/clothes, generate panels, then export a standalone comic.</p>
+                </header>
+
+                <div class="tool-grid">
+                    <div class="tool-panel">
+                        <h3>Engine</h3>
+                        <label>Backend</label>
+                        <select id="comicEngine">
+                            <option value="pollinations">Pollinations Fast</option>
+                            <option value="stable_horde">Stable Horde Quality</option>
+                        </select>
+                        <label>Model</label>
+                        <select id="comicModel"></select>
+                        <div class="two-col">
+                            <label>Width <input type="number" id="comicWidth" value="768" min="256" max="1024" step="64"></label>
+                            <label>Height <input type="number" id="comicHeight" value="1024" min="256" max="1024" step="64"></label>
+                        </div>
+                        <label>Steps <input type="range" id="comicSteps" min="10" max="100" value="30"></label>
+                        <label>CFG <input type="range" id="comicCfg" min="1" max="20" step="0.5" value="7"></label>
+                        <label class="checkline"><input type="checkbox" id="comicNsfw"> Allow NSFW</label>
+                    </div>
+
+                    <div class="tool-panel wide">
+                        <h3>Script & Prompts</h3>
+                        <div class="button-row">
+                            <label class="file-button">Import TXT/HTML<input type="file" id="promptImport" accept=".txt,.html,.htm,.md,.json,.xml"></label>
+                            <button id="applyStyle" class="btn-secondary">Apply Style</button>
+                            <button id="applyCharacter" class="btn-secondary">Character</button>
+                            <button id="applyClothes" class="btn-secondary">Clothes</button>
+                        </div>
+                        <textarea id="comicPrompts" rows="11">A dark noir detective standing in the rain, heavy shadows, cinematic lighting
+Close-up on the detective's face, tension in his eyes, rain on glass</textarea>
+                        <label>Negative prompt</label>
+                        <textarea id="comicNegative" rows="3">3d render, blurry, watermark, text, signature, ugly, deformed, low quality</textarea>
+                        <button id="generateComic" class="btn-primary">Generate All Panels</button>
+                    </div>
+
+                    <div class="tool-panel">
+                        <h3>Prompt Builders</h3>
+                        <label>Style preset</label>
+                        <select id="stylePreset"></select>
+                        <div id="characterControls" class="mini-grid"></div>
+                        <div id="clothesControls" class="mini-grid"></div>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button id="exportComic" class="btn-secondary">Export HTML Comic</button>
+                    <button id="clearComic" class="btn-secondary">Clear Panels</button>
+                </div>
+                <div id="comicResult" class="gallery"></div>
+                <pre id="comicLog" class="log-box"></pre>
+            </section>
+
+            <section id="image-tab" class="tab-content">
+                <header class="section-header">
+                    <h2>Image Lab</h2>
+                    <p>Generate one image, draw on it, apply filters, add captions, save, and download.</p>
+                </header>
+                <div class="tool-grid">
+                    <div class="tool-panel">
+                        <h3>Generate</h3>
+                        <textarea id="imagePrompt" rows="5" placeholder="Describe the image..."></textarea>
+                        <select id="imageEngine">
+                            <option value="pollinations">Pollinations Fast</option>
+                            <option value="stable_horde">Stable Horde Quality</option>
+                        </select>
+                        <div class="two-col">
+                            <label>Width <input type="number" id="imageWidth" value="768" min="256" max="1024" step="64"></label>
+                            <label>Height <input type="number" id="imageHeight" value="1024" min="256" max="1024" step="64"></label>
+                        </div>
+                        <label class="checkline"><input type="checkbox" id="imageNSFW"> Allow NSFW</label>
+                        <button id="generateImage" class="btn-primary">Generate Image</button>
+                    </div>
+                    <div class="tool-panel wide">
+                        <h3>Result & Editor</h3>
+                        <div id="imageResult" class="result-box"></div>
+                        <div id="imageEditor" class="image-editor hidden">
+                            <div class="button-row">
+                                <button id="brushTool" class="btn-secondary active">Brush</button>
+                                <button id="eraserTool" class="btn-secondary">Eraser</button>
+                                <button id="clearCanvas" class="btn-secondary">Reset</button>
+                                <input type="color" id="brushColor" value="#ff2f7a">
+                                <label>Size <input type="range" id="brushSize" min="1" max="50" value="5"></label>
+                            </div>
+                            <canvas id="editCanvas"></canvas>
+                            <div class="button-row">
+                                <button id="saveEdited" class="btn-secondary">Save Drawing</button>
+                                <button id="downloadImage" class="btn-secondary">Download</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tool-panel">
+                        <h3>Filters & Caption</h3>
+                        <select id="filterName">
+                            <option value="none">No filter</option>
+                            <option value="grayscale">Grayscale</option>
+                            <option value="blur">Blur</option>
+                            <option value="sharpen">Sharpen</option>
+                            <option value="vintage">Vintage</option>
+                        </select>
+                        <label>Brightness <input type="range" id="brightness" min="0.2" max="2" step="0.1" value="1"></label>
+                        <label>Contrast <input type="range" id="contrast" min="0.2" max="2" step="0.1" value="1"></label>
+                        <label>Saturation <input type="range" id="saturation" min="0" max="2" step="0.1" value="1"></label>
+                        <input type="text" id="captionText" placeholder="Caption text">
+                        <select id="captionPosition">
+                            <option value="bottom">Bottom</option>
+                            <option value="top">Top</option>
+                        </select>
+                        <button id="applyFilter" class="btn-primary">Apply Edit</button>
+                    </div>
+                </div>
+                <div class="gallery" id="imageGallery"></div>
+            </section>
+
+            <section id="code-tab" class="tab-content">
+                <header class="section-header"><h2>Code Execution</h2><p>Run Python with timeout and safety checks.</p></header>
+                <textarea id="codeInput" rows="12">import math
+print(math.sqrt(16))</textarea>
+                <button id="executeCode" class="btn-primary">Execute</button>
+                <pre id="codeOutput" class="log-box"></pre>
+            </section>
+
+            <section id="search-tab" class="tab-content">
+                <header class="section-header"><h2>Web Search</h2><p>DuckDuckGo search, no key needed.</p></header>
+                <div class="chat-input-box">
+                    <input type="text" id="searchInput" placeholder="Search the web...">
+                    <button id="searchBtn" class="btn-primary">Search</button>
+                </div>
+                <pre id="searchResults" class="log-box"></pre>
+            </section>
+
+            <section id="files-tab" class="tab-content">
+                <header class="section-header"><h2>File Processor</h2><p>Analyze text/images, import prompts, optimize, resize, or convert images.</p></header>
+                <div class="tool-panel compact">
+                    <input type="file" id="fileInput">
+                    <select id="fileOperation">
+                        <option value="analyze">Analyze</option>
+                        <option value="optimize">Optimize Image</option>
+                        <option value="resize">Resize Image</option>
+                        <option value="convert_to_png">Convert Image to PNG</option>
+                        <option value="format_json">Format JSON</option>
+                    </select>
+                    <button id="processFile" class="btn-primary">Process File</button>
+                </div>
+                <pre id="fileOutput" class="log-box"></pre>
+            </section>
+
+            <section id="memory-tab" class="tab-content">
+                <header class="section-header"><h2>Memory & Sessions</h2><p>View sessions, saved memories, and conversation history.</p></header>
+                <div class="tool-grid">
+                    <div class="tool-panel">
+                        <h3>Save Memory</h3>
+                        <input type="text" id="memoryKey" placeholder="Key">
+                        <textarea id="memoryValue" rows="4" placeholder="Value"></textarea>
+                        <button id="saveMemory" class="btn-primary">Save Memory</button>
+                    </div>
+                    <div class="tool-panel wide">
+                        <h3>Stored Data</h3>
+                        <div class="button-row">
+                            <button id="refreshMemories" class="btn-secondary">Refresh Memories</button>
+                            <button id="refreshSessions" class="btn-secondary">Refresh Sessions</button>
+                        </div>
+                        <pre id="memoryOutput" class="log-box"></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="automation-tab" class="tab-content">
+                <header class="section-header"><h2>Automation & Workflows</h2><p>Create local task definitions and simple workflows.</p></header>
+                <div class="tool-grid">
+                    <div class="tool-panel">
+                        <h3>Automation</h3>
+                        <input type="text" id="automationName" placeholder="Task name">
+                        <select id="automationTrigger">
+                            <option value="manual">Manual</option>
+                            <option value="cron">Cron</option>
+                            <option value="webhook">Webhook</option>
+                        </select>
+                        <input type="text" id="automationSchedule" placeholder="Cron or webhook URL">
+                        <textarea id="automationAction" rows="4" placeholder="What should this task do?"></textarea>
+                        <button id="createAutomation" class="btn-primary">Create Automation</button>
+                    </div>
+                    <div class="tool-panel">
+                        <h3>Workflow</h3>
+                        <input type="text" id="workflowName" placeholder="Workflow name">
+                        <textarea id="workflowSteps" rows="8" placeholder="One step per line"></textarea>
+                        <button id="createWorkflow" class="btn-primary">Create Workflow</button>
+                    </div>
+                    <div class="tool-panel wide">
+                        <h3>Automation Console</h3>
+                        <div class="button-row">
+                            <button id="refreshAutomations" class="btn-secondary">Refresh Automations</button>
+                            <button id="refreshWorkflows" class="btn-secondary">Refresh Workflows</button>
+                        </div>
+                        <pre id="automationOutput" class="log-box"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

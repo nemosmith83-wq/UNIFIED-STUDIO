@@ -1,0 +1,17 @@
+services:
+  studio:
+    build: .
+    image: unified-studio:cloud
+    restart: unless-stopped
+    env_file:
+      - .env.cloud
+    ports:
+      - "127.0.0.1:${APP_HTTP_PORT:-8080}:8000"
+    volumes:
+      - studio_data:/app/data
+      - studio_outputs:/app/outputs
+    init: true
+
+volumes:
+  studio_data:
+  studio_outputs:
