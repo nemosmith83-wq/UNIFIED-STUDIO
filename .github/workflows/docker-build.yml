@@ -1,5 +1,4 @@
-
-name: Docker Build Check
+name: Docker Build and Smoke Test
 
 on:
   push:
@@ -9,11 +8,54 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-smoke-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Get project files
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t unified-studio-test .
+        run: docker build --tag unified-studio-test .
+
+      - name: Start container and verify health + frontend
+        run: |
+          docker run --detach --name unified-studio-test \
+            --publish 127.0.0.1:8000:8000 \
+            --env PORT=8000 \
+            --env COOKIE_SECURE_ONLY=false \
+            --env ALLOW_REGISTRATION=false \
+            --env ENABLE_CODE_EXECUTION=false \
+            unified-studio-test
+
+          python - <<'PY'
+          import json
+          import time
+          from urllib.error import URLError
+          from urllib.request import urlopen
+
+          base = "http://127.0.0.1:8000"
+          last_error = None
+          for _ in range(45):
+              try:
+                  with urlopen(base + "/health", timeout=2) as response:
+                      health = json.loads(response.read().decode("utf-8"))
+                      assert response.status == 200 and health.get("ok") is True, health
+                  with urlopen(base + "/", timeout=3) as response:
+                      html = response.read().decode("utf-8", errors="replace")
+                      assert response.status == 200 and "<html" in html.lower(), "Frontend HTML did not load"
+                  print("PASS: container health endpoint and frontend route responded.")
+                  break
+              except (URLError, TimeoutError, AssertionError, ValueError) as exc:
+                  last_error = exc
+                  time.sleep(2)
+          else:
+              raise SystemExit(f"Container smoke test failed: {last_error}")
+          PY
+
+      - name: Print container logs on failure
+        if: failure()
+        run: docker logs unified-studio-test || true
+
+      - name: Remove test container
+        if: always()
+        run: docker rm --force unified-studio-test || true
