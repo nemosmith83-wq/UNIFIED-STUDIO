@@ -1,0 +1,18 @@
+# Never send credentials or local state into the Docker build context
+.git
+.github
+.env
+.env.*
+!.env.cloud.example
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+data/
+outputs/
+.DS_Store
