@@ -45,7 +45,7 @@ jobs:
                       assert response.status == 200 and "<html" in html.lower(), "Frontend HTML did not load"
                   print("PASS: container health endpoint and frontend route responded.")
                   break
-              except (URLError, TimeoutError, AssertionError, ValueError) as exc:
+              except (URLError, TimeoutError, AssertionError, ValueError, OSError) as exc:
                   last_error = exc
                   time.sleep(2)
           else:
