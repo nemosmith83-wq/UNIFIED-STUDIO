@@ -58,7 +58,11 @@ app.add_middleware(
     allow_origins=[
         f"http://127.0.0.1:{_unified_port}",
         f"http://localhost:{_unified_port}",
+        "capacitor://localhost",
+        "https://localhost",
+        "http://localhost",
     ],
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
