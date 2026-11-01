@@ -672,7 +672,7 @@ async function updateServerStatus() {
 }
 
 async function fetchJson(path, options = {}) {
-    const response = await fetch(`${API_BASE}${path}`, { credentials: "same-origin", ...options });
+    const response = await fetch(`${API_BASE}${path}`, { credentials: API_BASE === "/api" ? "same-origin" : "include", ...options });
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { error: text || response.statusText }; }
