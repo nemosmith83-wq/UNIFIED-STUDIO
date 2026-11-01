@@ -10,6 +10,14 @@
     <section id="authScreen" class="auth-screen" aria-live="polite">
         <div class="auth-card">
             <div class="auth-brand">Unified Studio</div>
+            <details id="serverConfig" style="margin:0 0 1rem;text-align:left">
+                <summary style="cursor:pointer">Server connection settings</summary>
+                <label class="auth-field" style="display:block;margin-top:.75rem">Backend server URL
+                    <input id="serverBaseUrl" type="url" placeholder="https://your-server.example.com" autocomplete="url">
+                </label>
+                <button id="saveServerBaseUrl" class="btn-secondary" type="button">Save server address</button>
+                <p style="font-size:.85rem;opacity:.8">Required for Android builds to connect to a deployed Unified Studio backend. Use the server's HTTPS address.</p>
+            </details>
             <h1 id="authTitle">Sign in</h1>
             <p id="authSubtitle">Access your private workspace.</p>
             <form id="authForm" autocomplete="on">
