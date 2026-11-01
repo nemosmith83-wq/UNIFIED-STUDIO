@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+let API_BASE = (() => { const base = (localStorage.getItem("unifiedStudioApiBase") || "").trim().replace(/\/$/, ""); return base ? base + "/api" : "/api"; })();
 
 let sessionId = "session_" + Math.random().toString(36).slice(2);
 let generatedImages = [];
@@ -20,6 +20,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function initAuthentication() {
+    const serverInput = byId("serverBaseUrl");
+    const savedServer = localStorage.getItem("unifiedStudioApiBase") || "";
+    if (serverInput) serverInput.value = savedServer && savedServer !== "/api" ? savedServer.replace(/\/$/, "") : "";
+    byId("saveServerBaseUrl")?.addEventListener("click", () => {
+        const raw = (byId("serverBaseUrl")?.value || "").trim().replace(/\/$/, "");
+        if (raw && !/^https:\/\//i.test(raw)) {
+            showAuthMessage("Use an HTTPS backend URL.", "error");
+            return;
+        }
+        localStorage.setItem("unifiedStudioApiBase", raw);
+        API_BASE = raw ? raw + "/api" : "/api";
+        showAuthMessage(raw ? "Server address saved. Reconnecting…" : "Local API mode selected. This requires a backend on the same origin.", "success");
+        initAuthentication();
+    });
     const form = byId("authForm");
     const toggle = byId("authToggle");
     if (toggle) toggle.addEventListener("click", toggleAuthMode);
