@@ -38,7 +38,6 @@ chaquopy {
             install "beautifulsoup4==4.13.4"
             install "pypdf==6.0.0"
             install "python-docx==1.2.0"
-            install "ddgs==9.5.5"
             install "python-multipart==0.0.20"
             install "httpx==0.28.1"
         }
