@@ -1,6 +1,9 @@
 name: Build Stable Diffusion Android ARM64 Engine
 
 on:
+  push:
+    paths:
+      - ".github/workflows/android-sd-engine.yml"
   workflow_dispatch:
 
 permissions:
