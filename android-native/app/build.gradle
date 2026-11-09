@@ -29,9 +29,9 @@ chaquopy {
     defaultConfig {
         version = "3.12"
         pip {
-            install "fastapi==0.115.14"
+            install "fastapi==0.103.2"
             install "uvicorn==0.35.0"
-            install "pydantic==2.11.7"
+            install "pydantic==1.10.19"
             install "python-dotenv==1.1.1"
             install "requests==2.32.4"
             install "Pillow==11.0.0"
