@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - ".github/workflows/android-sd-engine.yml"
+      - "android-native/app/src/main/java/com/unifiedstudio/android/MainActivity.java"
+      - ".github/workflows/android-native.yml"
   workflow_dispatch:
 
 permissions:
