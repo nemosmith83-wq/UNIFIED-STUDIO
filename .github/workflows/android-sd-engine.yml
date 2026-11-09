@@ -1,0 +1,70 @@
+name: Build Stable Diffusion Android ARM64 Engine
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Unified Studio
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools;ndk;27.2.12479018;cmake;3.22.1
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Checkout pinned stable-diffusion.cpp source
+        run: |
+          git clone https://github.com/leejet/stable-diffusion.cpp.git engine
+          git -C engine checkout fc350be2ceeeb859bcc201ac435591ed7d46821d
+          git -C engine submodule update --init --recursive
+
+      - name: Configure Android ARM64 CPU engine
+        run: |
+          NDK="$ANDROID_HOME/ndk/27.2.12479018"
+          cmake -S engine -B engine/build-android -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-24 \
+            -DANDROID_STL=c++_shared \
+            -DGGML_OPENMP=OFF \
+            -DSD_BUILD_EXAMPLES=ON \
+            -DSD_WEBP=OFF \
+            -DSD_WEBM=OFF \
+            -DSD_SERVER_BUILD_FRONTEND=OFF
+
+      - name: Compile native server
+        run: cmake --build engine/build-android --target sd-server --parallel 2
+
+      - name: Verify ARM64 executable and package runtime
+        run: |
+          set -euo pipefail
+          BIN="engine/build-android/bin/sd-server"
+          test -s "$BIN"
+          mkdir -p dist/native/arm64-v8a
+          cp "$BIN" dist/native/arm64-v8a/sd-server
+          cp "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" dist/native/arm64-v8a/
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h dist/native/arm64-v8a/sd-server | grep -E 'Class:|Machine:'
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -d dist/native/arm64-v8a/sd-server | grep NEEDED || true
+          sha256sum dist/native/arm64-v8a/*
+          cd dist && zip -r ../stable-diffusion-android-arm64-cpu.zip native
+
+      - name: Upload native engine artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-diffusion-android-arm64-cpu
+          path: stable-diffusion-android-arm64-cpu.zip
+          if-no-files-found: error
+          retention-days: 14
