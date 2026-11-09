@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>Unified Studio</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div><p class="eyebrow">Unified creative workspace</p><h1>Unified Studio</h1></div>
+        <button id="installBtn" class="secondary hidden">Install app</button>
+      </header>
+      <main class="layout">
+        <section class="panel form-panel">
+          <div class="panel-header"><h2>Generate</h2><span id="statusBadge" class="status ok">Ready</span></div>
+          <label class="field"><span>Prompt</span><textarea id="prompt" rows="5" placeholder="Describe the image you want to create...">a cinematic portrait of a confident woman in red traditional dress, soft studio lighting, realistic, detailed face</textarea></label>
+          <div class="two-col">
+            <label class="field"><span>Negative prompt</span><input id="negativePrompt" type="text" value="blurry, low quality, distorted hands, text, watermark" /></label>
+            <label class="field"><span>Model</span><select id="modelSelect"><option value="">Auto</option></select></label>
+          </div>
+          <div class="three-col">
+            <label class="field"><span>Step count</span><input id="steps" type="number" value="20" min="10" max="60" /></label>
+            <label class="field"><span>Width</span><input id="width" type="number" value="512" min="128" max="1536" step="64" /></label>
+            <label class="field"><span>Height</span><input id="height" type="number" value="512" min="128" max="1536" step="64" /></label>
+          </div>
+          <div class="three-col">
+            <label class="field"><span>CFG Scale</span><input id="cfgScale" type="number" value="7" min="1" max="30" step="0.5" /></label>
+            <label class="field"><span>Seed</span><input id="seed" type="number" value="123456" /></label>
+            <label class="field"><span>Sampler</span><select id="sampler"><option value="DPM++ 2M Karras">DPM++ 2M Karras</option><option value="Euler a">Euler a</option><option value="DDIM">DDIM</option><option value="PLMS">PLMS</option></select></label>
+          </div>
+          <div class="actions-row"><button id="generateBtn" class="primary">Generate</button><button id="loadModelsBtn" class="secondary">Load Models</button><button id="clearGalleryBtn" class="ghost">Clear Gallery</button></div>
+          <div class="connection-box">
+            <div class="connection-main"><strong>Stable Diffusion API</strong><label class="field compact-field"><span>API address</span><input id="sdUrl" type="url" placeholder="http://192.168.1.5:7860" autocomplete="off" spellcheck="false" /></label><p id="sdStatus">Checking connection...</p></div>
+            <div class="connection-actions"><button id="saveSdUrlBtn" class="secondary tiny">Save &amp; test</button><button id="connectBtn" class="secondary tiny">Test connection</button></div>
+          </div>
+        </section>
+        <section class="panel output-panel"><div class="panel-header"><h2>Results</h2><span id="imageCount" class="meta-badge">0 items</span></div><div id="imageStage" class="image-stage empty-state"><div class="empty-message">No image generated yet.</div></div><div class="gallery" id="gallery"></div></section>
+      </main>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
