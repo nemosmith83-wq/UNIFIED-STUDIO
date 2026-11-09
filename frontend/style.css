@@ -537,6 +537,9 @@ label {
 
 .fallback-empty { color: var(--muted); font-size: 13px; }
 
+/* Hidden mobile overlay must never intercept taps. */
+.mobile-nav-overlay[hidden] { display: none !important; }
+
 @media (max-width: 780px) {
     .provider-toolbar { grid-template-columns: 1fr; }
 }
