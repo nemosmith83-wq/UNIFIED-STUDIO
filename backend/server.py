@@ -118,6 +118,7 @@ class PromptTransformRequest(BaseModel):
     style: Optional[str] = None
     character: Optional[Dict[str, str]] = None
     clothes: Optional[Dict[str, str]] = None
+    director: Optional[str] = None
 
 
 class ImageEditRequest(BaseModel):
@@ -422,6 +423,7 @@ def get_config():
         "fallbacks": agent.LLM_FALLBACKS,
         "horde_models": tools.HORDE_MODELS,
         "style_presets": tools.STYLE_PRESETS,
+        "director_presets": list(tools.DIRECTOR_PRESETS.keys()),
         "character_options": tools.CHARACTER_OPTIONS,
         "clothes_options": tools.CLOTHES_OPTIONS,
     }
@@ -836,6 +838,10 @@ def transform_prompts(req: PromptTransformRequest):
         descriptors.append(tools.build_descriptor(req.clothes))
     if req.style:
         descriptors.append(req.style.strip().lower())
+    if req.director:
+        director_descriptor = tools.DIRECTOR_PRESETS.get(req.director)
+        if director_descriptor:
+            descriptors.append(director_descriptor)
 
     suffix = ", ".join(d for d in descriptors if d)
     if suffix:
