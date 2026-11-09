@@ -431,7 +431,7 @@ DIRECTOR_PRESETS = {
     "عرب — داود عبد السيد": "philosophical Egyptian cinema, symbolic visual motifs, measured compositions, existential atmosphere, ambiguous reality",
     "عرب — شادي عبد السلام": "monumental historical imagery, sculptural compositions, Egyptian heritage motifs, painterly light, deliberate mise-en-scène",
     "عرب — رضوان الكاشف": "poetic Egyptian realism, rural landscapes, earthy textures, spiritual undertones, patient observational framing",
-    "عرب — بركات": "classic Egyptian melodrama, elegant studio-era compositions, expressive close-ups, romantic dramatic lighting",
+    "عرب — كمال الشيخ": "Egyptian psychological thriller grammar, suspenseful staging, precise visual clues, shadow-rich interiors, controlled pacing",
     "عرب — هنري بركات": "classic Egyptian dramatic storytelling, lyrical compositions, emotional close-ups, graceful camera movement",
     "عرب — نوري بوزيد": "unflinching Tunisian social realism, intimate framing, psychologically direct performances, contemporary urban texture",
     "عرب — مفيدة التلاتلي": "intimate Tunisian character drama, memory-driven visual storytelling, restrained compositions, nuanced interior spaces",
