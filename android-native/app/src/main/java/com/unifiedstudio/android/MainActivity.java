@@ -67,6 +67,10 @@ public class MainActivity extends Activity {
             copyAssetFile("native/arm64-v8a/libc++_shared.so", runtime);
             if (!executable.setExecutable(true, true) && !executable.canExecute())
                 throw new IOException("Cannot mark sd-server executable");
+            if (!executable.setWritable(false, false))
+                throw new IOException("Cannot make sd-server read-only");
+            if (!runtime.setWritable(false, false))
+                throw new IOException("Cannot make libc++_shared.so read-only");
 
             File modelsDir = new File(getFilesDir(), "models");
             if (!modelsDir.exists() && !modelsDir.mkdirs())
