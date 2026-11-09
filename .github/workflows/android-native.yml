@@ -31,6 +31,14 @@ jobs:
         with:
           packages: platform-tools platforms;android-35 build-tools;35.0.0
 
+      - name: Set up Python 3.12 for Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify Python for Chaquopy
+        run: python --version && python3.12 --version
+
       - name: Set up Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
