@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
     private static final int FILE_CHOOSER = 7001;
     private WebView webView;
     private ValueCallback<Uri[]> fileCallback;
+    private Process diffusionProcess;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,7 @@ public class MainActivity extends Activity {
         setContentView(webView);
         configureWebView();
         try {
+            startLocalDiffusionEngine();
             File frontend = new File(getFilesDir(), "frontend");
             copyAssetTree("frontend", frontend);
             File outputs = new File(getFilesDir(), "outputs");
@@ -50,6 +52,39 @@ public class MainActivity extends Activity {
             waitForServer();
         } catch (Exception e) {
             Toast.makeText(this, "Unified Studio startup failed: " + e.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void startLocalDiffusionEngine() {
+        try {
+            File nativeDir = new File(getFilesDir(), "native/arm64-v8a");
+            if (!nativeDir.exists() && !nativeDir.mkdirs())
+                throw new IOException("Cannot create native engine directory");
+            File executable = new File(nativeDir, "sd-server");
+            File runtime = new File(nativeDir, "libc++_shared.so");
+            copyAssetFile("native/arm64-v8a/sd-server", executable);
+            copyAssetFile("native/arm64-v8a/libc++_shared.so", runtime);
+            if (!executable.setExecutable(true, true) && !executable.canExecute())
+                throw new IOException("Cannot mark sd-server executable");
+
+            File modelsDir = new File(getFilesDir(), "models");
+            if (!modelsDir.exists() && !modelsDir.mkdirs())
+                throw new IOException("Cannot create models directory");
+            File logFile = new File(getFilesDir(), "sd-server.log");
+
+            ProcessBuilder builder = new ProcessBuilder(
+                    executable.getAbsolutePath(),
+                    "--model-dir", modelsDir.getAbsolutePath(),
+                    "--listen-ip", "127.0.0.1",
+                    "--listen-port", "8766");
+            builder.directory(getFilesDir());
+            builder.environment().put("LD_LIBRARY_PATH", nativeDir.getAbsolutePath());
+            builder.redirectErrorStream(true);
+            builder.redirectOutput(logFile);
+            diffusionProcess = builder.start();
+        } catch (Exception e) {
+            Toast.makeText(this, "Local image engine unavailable: " + e.getMessage(),
                     Toast.LENGTH_LONG).show();
         }
     }
