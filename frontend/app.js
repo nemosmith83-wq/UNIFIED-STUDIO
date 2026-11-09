@@ -222,6 +222,7 @@ function setupEvents() {
     byId("exportChat").addEventListener("click", exportChat);
     byId("loadHistory").addEventListener("click", loadHistory);
 
+    byId("importComicScript").addEventListener("click", () => byId("promptImport").click());
     byId("promptImport").addEventListener("change", importPrompts);
     byId("applyStyle").addEventListener("click", () => transformPrompts({ style: byId("stylePreset").value }));
     byId("applyDirector").addEventListener("click", () => transformPrompts({ director: byId("directorPreset").value }));
