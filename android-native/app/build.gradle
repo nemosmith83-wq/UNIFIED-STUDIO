@@ -13,10 +13,7 @@ android {
         targetSdk 35
         versionCode 2
         versionName '1.1.0'
-
-        ndk {
-            abiFilters 'arm64-v8a', 'x86_64'
-        }
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
     }
 
     buildTypes {
@@ -24,16 +21,13 @@ android {
             minifyEnabled false
             shrinkResources false
         }
-        debug {
-            minifyEnabled false
-        }
+        debug { minifyEnabled false }
     }
 }
 
 chaquopy {
     defaultConfig {
         version = "3.13"
-
         pip {
             install "fastapi==0.115.14"
             install "uvicorn==0.35.0"
@@ -51,5 +45,22 @@ chaquopy {
     }
 }
 
-dependencies {
+dependencies {}
+
+def repositoryRoot = rootProject.projectDir.parentFile
+
+tasks.register("stageAndroidFrontend", Copy) {
+    from(new File(repositoryRoot, "frontend"))
+    into("$projectDir/src/main/assets/frontend")
+}
+
+tasks.register("stageAndroidPython", Copy) {
+    from(new File(repositoryRoot, "backend")) {
+        include "*.py"
+    }
+    into("$projectDir/src/main/python")
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("stageAndroidFrontend", "stageAndroidPython")
 }
