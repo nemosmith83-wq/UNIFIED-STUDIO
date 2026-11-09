@@ -176,6 +176,7 @@ public class MainActivity extends Activity {
     private void copyAssetFile(String assetPath, File destination) throws IOException {
         File parent = destination.getParentFile();
         if (parent != null && !parent.exists()) parent.mkdirs();
+        if (destination.exists() && !destination.canWrite()) destination.setWritable(true, true);
         try (InputStream in = getAssets().open(assetPath);
              FileOutputStream out = new FileOutputStream(destination)) {
             byte[] buffer = new byte[8192];
