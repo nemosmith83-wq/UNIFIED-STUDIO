@@ -224,6 +224,7 @@ function setupEvents() {
 
     byId("promptImport").addEventListener("change", importPrompts);
     byId("applyStyle").addEventListener("click", () => transformPrompts({ style: byId("stylePreset").value }));
+    byId("applyDirector").addEventListener("click", () => transformPrompts({ director: byId("directorPreset").value }));
     byId("applyCharacter").addEventListener("click", () => transformPrompts({ character: collectControls("characterControls") }));
     byId("applyClothes").addEventListener("click", () => transformPrompts({ clothes: collectControls("clothesControls") }));
     byId("generateComic").addEventListener("click", generateComic);
@@ -381,6 +382,7 @@ async function loadConfig() {
 
     fillSelect("comicModel", config.horde_models || []);
     fillSelect("stylePreset", config.style_presets || []);
+    fillSelect("directorPreset", config.director_presets || []);
 
     const agentSelect = byId("globalAgent");
     (config.agents || []).forEach((name) => {
