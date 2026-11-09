@@ -98,7 +98,12 @@ def create_user(username: str, display_name: str, password: str):
 
 def re_username(value):
     import re
-    return bool(re.fullmatch(r"[a-zA-Z0-9._-]{3,32}", value))
+    # Accept ordinary usernames and email-style login IDs.
+    if re.fullmatch(r"[a-zA-Z0-9._-]{3,32}", value):
+        return True
+    if len(value) <= 32 and re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", value):
+        return True
+    return False
 
 def verify_user(username: str, password: str):
     init_db()
