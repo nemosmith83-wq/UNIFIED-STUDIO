@@ -1,0 +1,55 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.unifiedstudio.android'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.unifiedstudio.android'
+        minSdk 24
+        targetSdk 35
+        versionCode 2
+        versionName '1.1.0'
+
+        ndk {
+            abiFilters 'arm64-v8a', 'x86_64'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+        }
+        debug {
+            minifyEnabled false
+        }
+    }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+
+        pip {
+            install "fastapi==0.115.14"
+            install "uvicorn==0.35.0"
+            install "pydantic==2.11.7"
+            install "python-dotenv==1.1.1"
+            install "requests==2.32.4"
+            install "Pillow==11.3.0"
+            install "beautifulsoup4==4.13.4"
+            install "pypdf==6.0.0"
+            install "python-docx==1.2.0"
+            install "ddgs==9.5.5"
+            install "python-multipart==0.0.20"
+            install "httpx==0.28.1"
+        }
+    }
+}
+
+dependencies {
+}
