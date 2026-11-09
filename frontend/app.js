@@ -679,7 +679,18 @@ async function fetchJson(path, options = {}) {
     const text = await response.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { error: text || response.statusText }; }
-    if (!response.ok) throw new Error(data.detail || data.error || response.statusText);
+    if (!response.ok) {
+        const detail = data.detail ?? data.error ?? response.statusText;
+        const message = Array.isArray(detail)
+            ? detail.map((item) => {
+                const field = Array.isArray(item.loc) ? item.loc.filter((part) => part !== "body").join(".") : "";
+                return [field, item.msg || item.message || ""].filter(Boolean).join(": ");
+            }).filter(Boolean).join("; ")
+            : typeof detail === "string" ? detail
+            : detail && typeof detail === "object" ? (detail.message || detail.error || JSON.stringify(detail))
+            : String(detail || response.statusText);
+        throw new Error(message || `Request failed (${response.status})`);
+    }
     return data;
 }
 
