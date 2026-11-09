@@ -1,3 +1,4 @@
+# Rebuild the native engine after authentication and frontend fixes.
 name: Build Stable Diffusion Android ARM64 Engine
 # Rebuild the pinned ARM64 engine for the latest Android application revision.
 
