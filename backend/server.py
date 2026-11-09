@@ -89,7 +89,7 @@ class MessageRequest(BaseModel):
 
 class ImageRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=12000)
-    engine: str = Field(default="pollinations", pattern="^(pollinations|stable_horde)$")
+    engine: str = Field(default="pollinations", regex="^(pollinations|stable_horde)$")
     width: int = Field(default=768, ge=64, le=2048)
     height: int = Field(default=1024, ge=64, le=2048)
     negative_prompt: str = Field(default="", max_length=8000)
