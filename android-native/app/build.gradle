@@ -34,7 +34,7 @@ chaquopy {
             install "pydantic==2.11.7"
             install "python-dotenv==1.1.1"
             install "requests==2.32.4"
-            install "Pillow==11.3.0"
+            install "Pillow==11.0.0"
             install "beautifulsoup4==4.13.4"
             install "pypdf==6.0.0"
             install "python-docx==1.2.0"
