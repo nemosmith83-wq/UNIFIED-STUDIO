@@ -17,12 +17,13 @@ jobs:
       - name: Checkout Unified Studio
         uses: actions/checkout@v4
 
-      - name: Set up Android SDK and NDK
-        uses: android-actions/setup-android@v3
-
       - name: Install Android NDK and CMake packages
         run: |
-          sdkmanager "platform-tools" "ndk;27.2.12479018" "cmake;3.22.1"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" || test -x "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -1)"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "ndk;27.2.12479018" "cmake;3.22.1"
 
       - name: Install build tools
         run: |
