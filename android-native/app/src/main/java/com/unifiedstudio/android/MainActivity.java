@@ -99,7 +99,7 @@ public class MainActivity extends Activity {
             for (int attempt = 0; attempt < 60; attempt++) {
                 HttpURLConnection connection = null;
                 try {
-                    connection = (HttpURLConnection) new URL(BASE_URL + "api/status").openConnection();
+                    connection = (HttpURLConnection) new URL(BASE_URL + "health").openConnection();
                     connection.setRequestMethod("GET");
                     connection.setConnectTimeout(1200);
                     connection.setReadTimeout(1200);
