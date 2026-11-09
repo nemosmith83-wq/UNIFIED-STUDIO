@@ -422,6 +422,50 @@ CLOTHES_OPTIONS = {
 
 STYLE_PRESETS = ["Noir", "Manga", "Cinematic", "8K", "Fantasy", "Vintage"]
 
+DIRECTOR_PRESETS = {
+    "عرب — يوسف شاهين": "ensemble-driven Egyptian social cinema, expressive camera movement, layered characters, urban atmosphere, musical rhythm, moral ambiguity",
+    "عرب — صلاح أبو سيف": "Egyptian social realism, precise blocking, lived-in locations, class tension, psychologically grounded performances",
+    "عرب — عاطف الطيب": "gritty Egyptian neorealism, handheld observational camera, naturalistic performances, restrained color, social tension",
+    "عرب — محمد خان": "intimate Egyptian urban realism, fluid street-level camera, everyday details, understated emotion, natural light",
+    "عرب — خيري بشارة": "Egyptian humanist cinema, documentary-like texture, expressive faces, social observation, energetic ensemble scenes",
+    "عرب — داود عبد السيد": "philosophical Egyptian cinema, symbolic visual motifs, measured compositions, existential atmosphere, ambiguous reality",
+    "عرب — شادي عبد السلام": "monumental historical imagery, sculptural compositions, Egyptian heritage motifs, painterly light, deliberate mise-en-scène",
+    "عرب — رضوان الكاشف": "poetic Egyptian realism, rural landscapes, earthy textures, spiritual undertones, patient observational framing",
+    "عرب — بركات": "classic Egyptian melodrama, elegant studio-era compositions, expressive close-ups, romantic dramatic lighting",
+    "عرب — هنري بركات": "classic Egyptian dramatic storytelling, lyrical compositions, emotional close-ups, graceful camera movement",
+    "عرب — نوري بوزيد": "unflinching Tunisian social realism, intimate framing, psychologically direct performances, contemporary urban texture",
+    "عرب — مفيدة التلاتلي": "intimate Tunisian character drama, memory-driven visual storytelling, restrained compositions, nuanced interior spaces",
+    "عرب — فريد بوغدير": "warm Tunisian coming-of-age realism, lively neighborhoods, humanist ensemble storytelling, sunlit naturalism",
+    "عرب — إيليا سليمان": "deadpan Palestinian visual comedy, static symmetrical framing, precise visual gags, quiet political observation",
+    "عرب — هاني أبو أسعد": "grounded Palestinian drama, urgent human perspective, documentary-inflected realism, tense close framing",
+    "عرب — زياد دويري": "naturalistic Lebanese urban drama, intimate handheld camera, complex interpersonal conflict, muted cinematic palette",
+    "عرب — نادين لبكي": "human-centered Lebanese ensemble drama, mobile observational camera, layered street environments, emotional realism",
+    "عرب — مروان حامد": "stylized Egyptian thriller cinema, controlled production design, dynamic framing, atmospheric contrast, precise pacing",
+    "عرب — كاملة أبو ذكري": "character-led Egyptian drama, psychologically detailed performances, social texture, intimate close-ups",
+    "عرب — هيفاء المنصور": "intimate contemporary Arab social drama, restrained visual language, nuanced character perspective, naturalistic light",
+    "Hollywood — Alfred Hitchcock": "suspense through visual information, controlled camera movement, geometric framing, subjective tension, precise visual reveals",
+    "Hollywood — Stanley Kubrick": "meticulous symmetrical compositions, controlled tracking shots, formal visual geometry, deliberate pacing, precise production design",
+    "Hollywood — Steven Spielberg": "emotion-led cinematic staging, expressive camera movement, immersive spectacle, motivated lighting, clear visual storytelling",
+    "Hollywood — Martin Scorsese": "kinetic urban filmmaking, expressive tracking shots, layered voice and image rhythm, textured period detail",
+    "Hollywood — Francis Ford Coppola": "operatic dramatic staging, rich shadow detail, intimate character close-ups, expansive ensemble compositions",
+    "Hollywood — Christopher Nolan": "architectural compositions, parallel visual structure, practical-scale spectacle, temporal tension, high-contrast realism",
+    "Hollywood — Ridley Scott": "dense atmospheric production design, monumental scale, textured environments, sculpted lighting, controlled wide compositions",
+    "Hollywood — James Cameron": "immersive large-scale world building, fluid camera movement, tactile environments, technically precise action staging",
+    "Hollywood — David Fincher": "controlled camera precision, cool tonal palette, layered shadows, meticulous framing, procedural visual tension",
+    "Hollywood — Denis Villeneuve": "monumental negative space, restrained camera movement, atmospheric scale, minimalist compositions, controlled color",
+    "Hollywood — Quentin Tarantino": "chapter-like scene construction, bold blocking, deliberate dialogue rhythm, graphic compositions, genre-aware visual grammar",
+    "Hollywood — Spike Lee": "expressive urban visual language, dynamic perspective shifts, bold color accents, socially observant staging",
+    "Hollywood — Kathryn Bigelow": "immersive handheld immediacy, documentary tension, kinetic action geography, close subjective perspective",
+    "Hollywood — Greta Gerwig": "character-centered compositions, expressive production design, warm natural light, emotionally precise ensemble staging",
+    "Hollywood — Sofia Coppola": "intimate observational framing, atmospheric interiors, restrained movement, soft natural light, emotional distance",
+    "Hollywood — Paul Thomas Anderson": "long-form blocking, fluid tracking shots, layered ensemble performances, period texture, patient visual escalation",
+    "Hollywood — Michael Mann": "nighttime urban realism, precise widescreen compositions, practical city lights, procedural detail, controlled action",
+    "Hollywood — George Miller": "kinetic visual clarity, choreographed action geography, graphic silhouettes, high-energy practical spectacle",
+    "Hollywood — Jordan Peele": "socially charged visual motifs, controlled suspense, precise negative space, tonal contrast, symbolic production design",
+    "Hollywood — Guillermo del Toro": "gothic visual storytelling, tactile creature design, ornate production detail, expressive shadows, fairy-tale atmosphere",
+    "Hollywood — Wes Anderson": "formal symmetrical framing, deliberate lateral camera movement, graphic color blocking, highly composed production design"
+}
+
 
 def apply_style_to_prompts(prompts: str, style: str) -> str:
     """Append a style tag to every non-empty prompt line."""
