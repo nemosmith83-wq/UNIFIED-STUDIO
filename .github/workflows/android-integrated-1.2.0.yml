@@ -1,0 +1,98 @@
+name: Build Unified Studio Android 1.2.0 Integrated APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/android-integrated-1.2.0.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+          yes | sdkmanager --licenses
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Download and reconstruct exact integrated 1.2.0 source
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 4 --retry-all-errors --output source.part1 "https://nemo1sthelper.floot.app/_cdn/static/fba76d6c-1c1a-4ff6-80a3-007144eea851-UVS_Fadel_1_2_0_source.part1"
+          curl --fail --location --retry 4 --retry-all-errors --output source.part2 "https://nemo1sthelper.floot.app/_cdn/static/35f76f55-64fc-4f93-8dc9-736a77ce45d8-UVS_Fadel_1_2_0_source.part2"
+          cat source.part1 source.part2 > integrated-source.zip
+          echo "61b7a8812f05be63f94eaa1f57fab95a7d97ce4e7098479ee637670fa08a4dd4  integrated-source.zip" | sha256sum --check
+          unzip -t integrated-source.zip
+          mkdir source
+          unzip -q integrated-source.zip -d source
+          PROJECT="source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0"
+          test -s "$PROJECT/app/src/main/assets/frontend/index.html"
+          test -s "$PROJECT/app/src/main/python/server.py"
+          test -s "$PROJECT/app/src/main/python/android_server.py"
+          test -s "$PROJECT/app/src/main/python/storyboard_store.py"
+          test -s "$PROJECT/app/src/main/assets/frontend/characters/index.json"
+          echo "Verified integrated frontend, embedded backend, storyboard store and character library."
+
+      - name: Set Android app version to 1.2.0
+        working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
+        run: |
+          sed -i 's/versionCode 2/versionCode 3/' app/build.gradle
+          sed -i 's/versionName .1.1.0./versionName "1.2.0"/' app/build.gradle
+          grep -E 'versionCode|versionName|applicationId' app/build.gradle
+
+      - name: Run source regression tests
+        working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
+        run: |
+          python -m pip install --upgrade pip pytest fastapi uvicorn pydantic python-dotenv requests Pillow beautifulsoup4 pypdf python-docx ddgs python-multipart httpx
+          python -m pytest -q qa/test_android_regressions.py
+
+      - name: Build integrated Android APK
+        working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+        run: |
+          gradle --no-daemon --stacktrace clean assembleDebug
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          mkdir -p ../../../../delivery
+          cp "$APK" ../../../../delivery/Unified-Studio-Android-1.2.0.apk
+          ls -lh ../../../../delivery/Unified-Studio-Android-1.2.0.apk
+
+      - name: Verify APK signature, package and embedded app components
+        run: |
+          APK="delivery/Unified-Studio-Android-1.2.0.apk"
+          apksigner verify --verbose "$APK"
+          aapt dump badging "$APK" | grep -E "package: name='com.unifiedstudio.android' versionCode='3' versionName='1.2.0'|application-label:'Unified Studio'"
+          unzip -l "$APK" | grep -E 'assets/(frontend/index.html|frontend/core-studio.html|python_bytecode/|chaquopy/)' | head -30
+          sha256sum "$APK"
+          file "$APK"
+
+      - name: Upload verified integrated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unified-Studio-Android-1.2.0-Integrated-APK
+          path: delivery/Unified-Studio-Android-1.2.0.apk
+          if-no-files-found: error
+          retention-days: 30
