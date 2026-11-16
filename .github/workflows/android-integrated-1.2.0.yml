@@ -77,8 +77,9 @@ jobs:
           sed -i "s/versionName '1.1.0'/versionName '1.2.0'/" app/build.gradle
           sed -i '/version = "3.13"/a\        buildPython "python3.13"' app/build.gradle
           sed -i 's/Pillow==11.3.0/Pillow==11.0.0/' app/build.gradle
+          sed -i 's/pydantic==2.11.7/pydantic==1.10.21/' app/build.gradle
           python3.13 --version
-          grep -E 'versionCode|versionName|applicationId|buildPython|Pillow' app/build.gradle
+          grep -E 'versionCode|versionName|applicationId|buildPython|Pillow|pydantic' app/build.gradle
 
       - name: Run source regression tests
         continue-on-error: true
