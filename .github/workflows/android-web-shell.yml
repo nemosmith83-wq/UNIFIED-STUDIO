@@ -3,8 +3,6 @@ name: Android Web Shell APK
 on:
   push:
     paths:
-      - "frontend/**"
-      - "unified_studio_dashboard.html"
       - ".github/workflows/android-web-shell.yml"
   workflow_dispatch:
 
@@ -14,11 +12,8 @@ permissions:
 jobs:
   build-android-web-shell:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -30,17 +25,23 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Prepare web assets
+      - name: Download original v16 source archive
         run: |
+          curl --fail --location --retry 3 --output source-v16.zip "https://nemo1sthelper.floot.app/_cdn/static/39c5ed47-f0fc-40dd-bdc8-8b23c5ea43ab-UVS_Fadel_v16_source.zip"
+          unzip -t source-v16.zip
           mkdir -p www
-          cp -R frontend/. www/
-          cp unified_studio_dashboard.html www/dashboard.html
+          unzip -q source-v16.zip -d www
+          test -s www/index.html
+          echo "Verified original v16 entry point:"
+          ls -lh www/index.html
+
+      - name: Create Capacitor Android wrapper
+        run: |
           cat > package.json <<'JSON'
           {
-            "name": "unified-studio-android-shell",
-            "version": "1.0.0",
+            "name": "unified-studio-v16-android",
+            "version": "16.0.0",
             "private": true,
-            "description": "Android WebView shell for the Unified Studio frontend",
             "dependencies": {
               "@capacitor/android": "^7.4.3",
               "@capacitor/core": "^7.4.3"
@@ -52,7 +53,7 @@ jobs:
           JSON
           cat > capacitor.config.json <<'JSON'
           {
-            "appId": "com.unifiedstudio.app",
+            "appId": "com.fadel.unifiedstudio",
             "appName": "Unified Studio",
             "webDir": "www",
             "server": {
@@ -61,21 +62,19 @@ jobs:
           }
           JSON
           npm install
-
-      - name: Generate Android project
-        run: |
           npx cap add android
           npx cap sync android
 
-      - name: Build debug APK
+      - name: Build installable Android APK
         run: |
           cd android
           ./gradlew --no-daemon assembleDebug
+          test -s app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Upload APK artifact
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: unified-studio-android-web-shell-debug
+          name: Unified-Studio-v16-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
