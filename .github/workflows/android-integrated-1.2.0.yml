@@ -23,13 +23,19 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
+      - name: Configure preinstalled Android SDK
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
-          yes | sdkmanager --licenses
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -d "$SDK_ROOT"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
+          find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f -print
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
+          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
 
       - name: Set up Gradle 8.13
         uses: gradle/actions/setup-gradle@v4
@@ -69,16 +75,13 @@ jobs:
 
       - name: Build integrated Android APK
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
         run: |
           gradle --no-daemon --stacktrace clean assembleDebug
           APK="app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          mkdir -p ../../../../delivery
-          cp "$APK" ../../../../delivery/Unified-Studio-Android-1.2.0.apk
-          ls -lh ../../../../delivery/Unified-Studio-Android-1.2.0.apk
+          mkdir -p "$GITHUB_WORKSPACE/delivery"
+          cp "$APK" "$GITHUB_WORKSPACE/delivery/Unified-Studio-Android-1.2.0.apk"
+          ls -lh "$GITHUB_WORKSPACE/delivery/Unified-Studio-Android-1.2.0.apk"
 
       - name: Verify APK signature, package and embedded app components
         run: |
