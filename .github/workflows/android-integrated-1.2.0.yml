@@ -45,13 +45,13 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Download and reconstruct exact integrated 1.2.0 source
+      - name: Download and reconstruct corrected integrated 1.2.0 source
         run: |
           set -euo pipefail
-          curl --fail --location --retry 4 --retry-all-errors --output source.part1 "https://nemo1sthelper.floot.app/_cdn/static/2e84c9c4-8746-4869-bb25-3982be5808a3-UVS_Fadel_1_2_0_fixed.part1"
-          curl --fail --location --retry 4 --retry-all-errors --output source.part2 "https://nemo1sthelper.floot.app/_cdn/static/a553b6da-a90a-4964-8d0e-0f745fc4042c-UVS_Fadel_1_2_0_fixed.part2"
+          curl --fail --location --retry 4 --retry-all-errors --output source.part1 "https://nemo1sthelper.floot.app/_cdn/static/3de974b1-9d06-4f29-a946-34cf4b63d691-UVS_Fadel_1_2_0_final.part1"
+          curl --fail --location --retry 4 --retry-all-errors --output source.part2 "https://nemo1sthelper.floot.app/_cdn/static/437013db-f86d-4bf7-9233-309ccd7d73f9-UVS_Fadel_1_2_0_final.part2"
           cat source.part1 source.part2 > integrated-source.zip
-          echo "58ef1f6de8f229072927960101b891b8e57c5ee02e6ac7e29919bf41f778af71  integrated-source.zip" | sha256sum --check
+          echo "50b57a61b2d6ce692e84334b4525c88ab1fb4d231a689d2cf3f8ffaf4fbd02b3  integrated-source.zip" | sha256sum --check
           unzip -t integrated-source.zip
           mkdir source
           unzip -q integrated-source.zip -d source
@@ -62,7 +62,9 @@ jobs:
           test -s "$PROJECT/app/src/main/python/storyboard_store.py"
           test -s "$PROJECT/app/src/main/assets/frontend/characters/index.json"
           test -s "$PROJECT/app/src/main/assets/frontend/characters/REHAM/Originals/مكتب فاخر وبيئة مهنية أنيقة.png"
-          echo "Verified integrated frontend, embedded backend, storyboard store and all four character reference libraries."
+          grep -q 'BeautifulSoup' "$PROJECT/app/src/main/python/tools.py"
+          ! grep -q 'ddgs==' "$PROJECT/app/build.gradle"
+          echo "Verified corrected integrated source, backend, storyboard, character images and Android-compatible web-search fallback."
 
       - name: Set Android app version and Chaquopy build Python
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
@@ -76,10 +78,9 @@ jobs:
           grep -E 'versionCode|versionName|applicationId|buildPython|Pillow|pydantic' app/build.gradle
 
       - name: Run source regression tests
-        continue-on-error: true
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
         run: |
-          python -m pip install --upgrade pip pytest fastapi uvicorn pydantic python-dotenv requests Pillow beautifulsoup4 pypdf python-docx ddgs python-multipart httpx
+          python -m pip install --upgrade pip pytest fastapi uvicorn pydantic python-dotenv requests Pillow beautifulsoup4 pypdf python-docx python-multipart httpx
           python -m pytest -q qa/test_android_regressions.py
 
       - name: Build integrated Android APK
