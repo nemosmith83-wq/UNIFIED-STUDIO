@@ -23,26 +23,18 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Locate preinstalled Android SDK
+      - name: Configure preinstalled Android SDK
         run: |
           set -euo pipefail
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          test -d "$SDK_ROOT"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID SDK root: $SDK_ROOT"
-          ls -la "$SDK_ROOT"
-          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
-          if [ -n "$SDKMANAGER" ]; then
-            echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
-            yes | "$SDKMANAGER" --licenses || true
-            "$SDKMANAGER" --list_installed || true
-          fi
-          find "$SDK_ROOT/build-tools" -maxdepth 1 -mindepth 1 -type d -print || true
-          find "$SDK_ROOT/platforms" -maxdepth 1 -mindepth 1 -type d -print || true
-          find "$SDK_ROOT/ndk" -maxdepth 1 -mindepth 1 -type d -print || true
+          echo "Android SDK root: $SDK_ROOT"
           test -d "$SDK_ROOT/platforms/android-35"
-          test -d "$SDK_ROOT/build-tools/35.0.0"
+          test -x "$SDK_ROOT/build-tools/35.0.0/aapt"
+          test -x "$SDK_ROOT/build-tools/35.0.0/apksigner"
+          echo "$SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
+          echo "Android 35 platform and build-tools 35.0.0 are present."
 
       - name: Set up Gradle 8.13
         uses: gradle/actions/setup-gradle@v4
