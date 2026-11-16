@@ -33,9 +33,10 @@ jobs:
           test -d "$SDK_ROOT/platforms/android-35"
           test -x "$SDK_ROOT/build-tools/35.0.0/aapt"
           test -x "$SDK_ROOT/build-tools/35.0.0/apksigner"
-          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          SDKMANAGER="$(find "$SDK_ROOT" -type f -name sdkmanager -print -quit || true)"
+          test -n "$SDKMANAGER"
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
-          yes | "$SDKMANAGER" --licenses
+          yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" --install "ndk;27.0.12077973"
           test -d "$SDK_ROOT/ndk/27.0.12077973"
           echo "Android 35 SDK, build-tools 35.0.0 and NDK 27.0.12077973 are ready."
