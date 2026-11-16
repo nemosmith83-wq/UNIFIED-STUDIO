@@ -23,6 +23,11 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      - name: Set up Python 3.13 for Chaquopy
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - name: Configure Android SDK and required NDK
         run: |
           set -euo pipefail
@@ -65,12 +70,14 @@ jobs:
           test -s "$PROJECT/app/src/main/assets/frontend/characters/REHAM/Originals/مكتب فاخر وبيئة مهنية أنيقة.png"
           echo "Verified integrated frontend, embedded backend, storyboard store and all four character reference libraries."
 
-      - name: Set Android app version to 1.2.0
+      - name: Set Android app version and Chaquopy build Python
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
         run: |
           sed -i 's/versionCode 2/versionCode 3/' app/build.gradle
-          sed -i 's/versionName .1.1.0./versionName "1.2.0"/' app/build.gradle
-          grep -E 'versionCode|versionName|applicationId' app/build.gradle
+          sed -i "s/versionName '1.1.0'/versionName '1.2.0'/" app/build.gradle
+          sed -i '/version = "3.13"/a\        buildPython "python3.13"' app/build.gradle
+          python3.13 --version
+          grep -E 'versionCode|versionName|applicationId|buildPython' app/build.gradle
 
       - name: Run source regression tests
         continue-on-error: true
