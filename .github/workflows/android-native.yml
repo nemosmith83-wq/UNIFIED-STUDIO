@@ -1,6 +1,12 @@
 name: Build native Unified Studio Android APK
 
 on:
+  push:
+    paths:
+      - "android-native/**"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/android-native.yml"
   workflow_run:
     workflows: ["Build Stable Diffusion Android ARM64 Engine"]
     types: [completed]
@@ -11,7 +17,7 @@ permissions:
 
 jobs:
   build:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -21,27 +27,42 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Download compiled ARM64 engine
-        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           name: stable-diffusion-android-arm64-cpu
           path: downloaded-engine
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 45183107657 }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package native engine into executable APK native libraries
-        if: github.event_name == 'workflow_run'
+      - name: Prepare executable native libraries for Android
         run: |
           set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y patchelf
           OUTER="downloaded-engine/stable-diffusion-android-arm64-cpu.zip"
           test -s "$OUTER"
-          mkdir -p /tmp/sd-engine
-          unzip -q "$OUTER" -d /tmp/sd-engine
-          test -x /tmp/sd-engine/native/arm64-v8a/sd-server || chmod +x /tmp/sd-engine/native/arm64-v8a/sd-server
-          test -s /tmp/sd-engine/native/arm64-v8a/libsdserver_cxx.so
+          mkdir -p /tmp/sd-engine/outer /tmp/sd-engine/inner
+          unzip -q "$OUTER" -d /tmp/sd-engine/outer
+          INNER="/tmp/sd-engine/outer/stable-diffusion-android-arm64-cpu.zip"
+          test -s "$INNER"
+          unzip -q "$INNER" -d /tmp/sd-engine/inner
+          NATIVE="/tmp/sd-engine/inner/native/arm64-v8a"
+          BIN="$NATIVE/sd-server"
+          test -s "$BIN"
+          test -x "$BIN"
+
+          if test -s "$NATIVE/libc++_shared.so"; then
+            mv "$NATIVE/libc++_shared.so" "$NATIVE/libsdserver_cxx.so"
+            patchelf --set-soname libsdserver_cxx.so "$NATIVE/libsdserver_cxx.so"
+            patchelf --replace-needed libc++_shared.so libsdserver_cxx.so "$BIN"
+          fi
+          test -s "$NATIVE/libsdserver_cxx.so"
+          readelf -d "$BIN" | grep -F "libsdserver_cxx.so"
+          ! readelf -d "$BIN" | grep -F "libc++_shared.so"
+
           mkdir -p android-native/app/src/main/jniLibs/arm64-v8a
-          cp /tmp/sd-engine/native/arm64-v8a/sd-server android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
-          cp /tmp/sd-engine/native/arm64-v8a/libsdserver_cxx.so android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
+          cp "$BIN" android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
+          cp "$NATIVE/libsdserver_cxx.so" android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
           chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
           chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
           file android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
@@ -74,7 +95,7 @@ jobs:
         working-directory: android-native
         run: gradle --no-daemon --stacktrace assembleDebug
 
-      - name: Verify PromptVault guide is packaged
+      - name: Verify final APK contents
         run: |
           set -euo pipefail
           APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
@@ -84,7 +105,7 @@ jobs:
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsd-server.so"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsdserver_cxx.so"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
-          unzip -l "$APK" | grep -F "assets/frontend/user_studios/Comics_Studio_RTL_PRO_v14.html"
+          unzip -l "$APK" | grep -F "assets/frontend/user_studios/Stable_Diffusion_Mobile_PRO_v14.html"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
