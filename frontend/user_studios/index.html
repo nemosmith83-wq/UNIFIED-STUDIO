@@ -25,6 +25,17 @@ footer{max-width:900px;margin:24px auto;color:#8f9aa5;font-size:13px}
 <a href="MMM_Vox_Studio_Enhanced.html"><strong>MMM Vox Studio</strong><small>الصوت والكوميكس</small></a>
 <a href="DIRECTOR_100_INTERACTIVE.html"><strong>Director 100 Interactive</strong><small>مكتبة المخرجين التفاعلية</small></a>
 </main>
+
+<style id="fadel-local-sd-launcher">
+#fadel-local-sd-actions{position:fixed;z-index:99998;left:14px;bottom:14px;display:flex;flex-direction:column;gap:8px}
+#fadel-local-sd-actions button{background:#182630;color:#fff;border:1px solid #4a6577;border-radius:12px;padding:10px 13px;font:700 14px system-ui;cursor:pointer;box-shadow:0 6px 20px #0008}
+#fadel-local-sd-actions button:first-child{background:#d9a85e;color:#17120b;border-color:#d9a85e}
+</style>
+<div id="fadel-local-sd-actions">
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.openLocalStableDiffusion()}else{alert('الواجهة المحلية تعمل داخل APK فقط.')}">فتح Stable Diffusion المحلي</button>
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.importStableDiffusionModel()}else{alert('استيراد الموديل متاح داخل APK.')}">استيراد ملف موديل</button>
+</div>
+
 <footer>FadeL • ملفات المستخدم مضمّنة في APK. بعض الأدوات قد تحتاج اتصال إنترنت أو مزوّد API خارجي حسب تصميمها الأصلي.</footer>
 </body>
 </html>
