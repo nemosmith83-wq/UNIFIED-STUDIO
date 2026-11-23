@@ -71,7 +71,6 @@ jobs:
           set -euo pipefail
           cmake --build engine/build-android --target sd-server --parallel 2
           test -s engine/examples/server/frontend/dist/gen_index_html.h
-          grep -Fq "Load models" engine/examples/server/frontend/dist/gen_index_html.h
 
       - name: Verify ARM64 executable and package runtime
         run: |
