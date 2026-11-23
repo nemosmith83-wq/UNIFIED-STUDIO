@@ -39,7 +39,7 @@ def triage(id):
    cleaned=answer.replace(chr(96)*3+"json","").replace(chr(96)*3,"").strip();d=json.loads(cleaned)
   except:d={"category":"Other","priority":"Normal","suggested_fix":answer,"owner_role":"IT Support"}
  else:d={"category":"Other","priority":"Normal","suggested_fix":"AI triage unavailable: configure OPENAI_API_KEY. Review manually and consult Fixes / Known Issues.","owner_role":"IT Support"}
- with conn() as c:c.execute("UPDATE tickets SET category=?,priority=?,suggested_fix=?,updated_at=? WHERE id=?",(d.get("category","Other"),d.get("priority","Normal"),d.get("suggested_fix",""),datetime.utcnow().isoformat(timespec="minutes"),id))
+ with conn() as c:c.execute("UPDATE tickets SET category=?,priority=?,suggested_fix=?,owner=CASE WHEN owner='' THEN ? ELSE owner END,updated_at=? WHERE id=?",(d.get("category","Other"),d.get("priority","Normal"),d.get("suggested_fix",""),d.get("owner_role","IT Support"),datetime.utcnow().isoformat(timespec="minutes"),id))
  log("Ticket triaged","#%s priority %s"%(id,d.get("priority","Normal")));return d
 def report():
  now=datetime.utcnow()
