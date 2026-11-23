@@ -127,7 +127,7 @@ public class MainActivity extends Activity {
             if (!executable.isFile() || !executable.canExecute())
                 throw new IOException("Bundled sd-server is missing or not executable in nativeLibraryDir");
             if (!runtime.isFile())
-                throw new IOException("Bundled libc++_shared.so is missing from nativeLibraryDir");
+                throw new IOException("Bundled SD C++ runtime is missing from nativeLibraryDir");
 
             File logFile = new File(getFilesDir(), "sd-server.log");
             ProcessBuilder builder = new ProcessBuilder(
