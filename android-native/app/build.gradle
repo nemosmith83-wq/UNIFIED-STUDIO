@@ -24,6 +24,12 @@ android {
         debug { minifyEnabled false }
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
 }
 
 chaquopy {
