@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
 
         Button backToStudio = new Button(this);
         backToStudio.setText("العودة للاستوديو");
-        backToStudio.setOnClickListener(v -> webView.loadUrl(BASE_URL));
+        backToStudio.setOnClickListener(v -> { if (webView.canGoBack()) webView.goBack(); else webView.loadUrl(BASE_URL); });
         sdControls.addView(backToStudio, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
