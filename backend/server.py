@@ -364,6 +364,20 @@ def serve_guide(filename: str):
     return JSONResponse(status_code=404, content={"error": "not found"})
 
 
+@app.get("/user_studios/{filename:path}")
+def serve_user_studio(filename: str):
+    """Serve bundled user studio HTML files from the packaged frontend directory."""
+    studios_dir = (_frontend_dir / "user_studios").resolve()
+    try:
+        path = (studios_dir / filename).resolve()
+        path.relative_to(studios_dir)
+    except (OSError, ValueError):
+        return JSONResponse(status_code=404, content={"error": "not found"})
+    if path.exists() and path.is_file() and path.suffix.lower() in {".html", ".css", ".js", ".json"}:
+        return FileResponse(str(path))
+    return JSONResponse(status_code=404, content={"error": "not found"})
+
+
 @app.get("/{filename}")
 def serve_static(filename: str):
     """Serve only files that resolve inside the frontend directory."""
