@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FadeL — استوديوهاتك</title>
+<style>
+:root{color-scheme:dark;--bg:#090d12;--card:#151d24;--line:#2c3944;--gold:#e7b56a}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0b1118,#090d12);color:#f4f6f8;font:16px system-ui,"Cairo",sans-serif;padding:24px}
+header{max-width:900px;margin:0 auto 24px}h1{margin:0 0 8px;font-size:clamp(26px,5vw,40px)}p{color:#aeb8c2;line-height:1.7}
+main{max-width:900px;margin:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;min-height:100px;transition:border-color .15s,transform .15s}
+a:hover,a:focus{border-color:var(--gold);transform:translateY(-2px)}strong{display:block;font-size:17px;margin-bottom:8px}small{color:#aeb8c2}
+footer{max-width:900px;margin:24px auto;color:#8f9aa5;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>FadeL Creative Studios</h1><p>استوديوهات HTML المرفقة داخل التطبيق. افتح أي أداة من هنا؛ الملفات محفوظة محليًا داخل التطبيق.</p></header>
+<main>
+<a href="Stable_Diffusion_Mobile_PRO_v14.html"><strong>Stable Diffusion Mobile PRO</strong><small>واجهة توليد الصور</small></a>
+<a href="Stable_Diffusion_Mobile_Reno14F_FIXED.html"><strong>Stable Diffusion Mobile — Reno</strong><small>نسخة الهاتف المحسّنة</small></a>
+<a href="Remake_AI_FaceSwap_v8_Studio.html"><strong>AI FaceSwap Studio v8</strong><small>استوديو تبديل الوجه</small></a>
+<a href="Flux2_Klein_FaceSwap_Studio_v14.html"><strong>Flux.2 Klein FaceSwap</strong><small>استوديو Flux FaceSwap</small></a>
+<a href="Comics_Studio_RTL_PRO_v14.html"><strong>Comics Studio RTL PRO</strong><small>استوديو الكوميكس</small></a>
+<a href="MMM_Vox_Studio_Enhanced.html"><strong>MMM Vox Studio</strong><small>الصوت والكوميكس</small></a>
+<a href="DIRECTOR_100_INTERACTIVE.html"><strong>Director 100 Interactive</strong><small>مكتبة المخرجين التفاعلية</small></a>
+</main>
+
+<style id="fadel-local-sd-launcher">
+#fadel-local-sd-actions{position:fixed;z-index:99998;left:14px;bottom:14px;display:flex;flex-direction:column;gap:8px}
+#fadel-local-sd-actions button{background:#182630;color:#fff;border:1px solid #4a6577;border-radius:12px;padding:10px 13px;font:700 14px system-ui;cursor:pointer;box-shadow:0 6px 20px #0008}
+#fadel-local-sd-actions button:first-child{background:#d9a85e;color:#17120b;border-color:#d9a85e}
+</style>
+<div id="fadel-local-sd-actions">
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.openLocalStableDiffusion()}else{alert('الواجهة المحلية تعمل داخل APK فقط.')}">فتح Stable Diffusion المحلي</button>
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.importStableDiffusionModel()}else{alert('استيراد الموديل متاح داخل APK.')}">استيراد ملف موديل</button>
+</div>
+
+<footer>FadeL • ملفات المستخدم مضمّنة في APK. بعض الأدوات قد تحتاج اتصال إنترنت أو مزوّد API خارجي حسب تصميمها الأصلي.</footer>
+</body>
+</html>

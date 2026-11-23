@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stable Diffusion Mobile PRO v16 — HF FLUX.1 GPU + Smart Modeling Face-Lock + GFX100RF Micro-Contrast</title>
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<style>
+  :root {
+    --bg:#090b10; --card:#121622; --card2:#191f30; --line:#2a324b;
+    --text:#f3f4f6; --muted:#9ca3b4; --accent:#7c3aed; --cyan:#37e7dc; --gold:#d9b879;
+    --ok:#10b981; --bad:#ef4444;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:16px; line-height:1.5; }
+  main { max-width:980px; margin:auto; }
+  .hero { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; background:linear-gradient(135deg,#141829 0%,#231536 100%); border:1px solid var(--line); border-radius:16px; padding:16px 20px; margin-bottom:14px; }
+  .hero h2 { margin:0; font-size:19px; color:#fff; }
+  .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; background:var(--card2); border:1px solid var(--line); color:var(--cyan); font-family:monospace; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin:12px 0; }
+  .grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:12px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
+  textarea, input[type="text"], input[type="number"], select {
+    width:100%; border-radius:11px; padding:10px 12px; margin:6px 0 10px;
+    background:#0c0f18; color:var(--text); border:1px solid var(--line); font:inherit; font-size:13px;
+  }
+  input[type="range"] { width:100%; accent-color:var(--cyan); margin:6px 0 10px; }
+  button {
+    width:100%; border-radius:12px; padding:12px 16px; margin:6px 0;
+    background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%); color:#fff; border:0; font:inherit; font-size:14px; font-weight:700; cursor:pointer; transition:.15s;
+  }
+  button:hover { filter:brightness(1.1); }
+  button:disabled { opacity:.55; cursor:not-allowed; }
+  button.secondary { background:var(--card2); border:1px solid var(--line); color:var(--text); font-size:12px; padding:8px 12px; width:auto; }
+  button.gold { background:var(--gold); color:#17130c; width:auto; }
+  label { font-size:12px; font-weight:700; color:#d1d5db; display:block; margin-top:4px; }
+  .muted { color:var(--muted); font-size:12px; }
+  .ok { color:var(--ok); font-weight:700; }
+  .bad { color:var(--bad); font-weight:700; }
+  .drop-box { border:2px dashed var(--line); border-radius:12px; padding:14px; text-align:center; background:#0c0f18; cursor:pointer; }
+  .drop-box:hover { border-color:var(--cyan); }
+  .results-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:14px; }
+  .result-card { background:var(--card2); border:1px solid var(--line); border-radius:14px; padding:10px; }
+  .result-card canvas, .result-card img { width:100%; border-radius:10px; display:block; background:#05070c; }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div>
+      <h2>Stable Diffusion Mobile PRO v14 — Flux.1 Ultra-HD + Neural Flux2-Klein Face-Swap</h2>
+      <div class="muted">توليد فائق الدقة (1024×1536 / 1024×1024) بدون علامة مائية وبدون أي قص ولصق سطحي للوجه — دمج عصبي حقيقي عبر الفضاء السحابي linoyts/Flux2-Klein-Face-Swap و InSwapper_128</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="badge">v14 PURE NEURAL · NO 2D MESH · NO WATERMARK</span>
+      <button type="button" class="secondary" id="langBtn" onclick="toggleUiLang()">عربي / EN</button>
+    </div>
+  </div>
+
+  <section class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <b>حالة Stable Diffusion المحلي (ARM64 CPU)</b>
+        <div id="status" class="muted">جاري فحص المحرك المحلي...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button type="button" class="secondary" onclick="openLocalSdUi()">فتح واجهة المحرك وتحميل الموديل</button>
+          <button type="button" class="secondary" onclick="importLocalSdModel()">استيراد ملف موديل من الهاتف</button>
+        </div>
+        <div class="muted" style="margin-top:6px">التوليد المحلي يحتاج ملف موديل متوافقًا؛ أوزان الموديل غير مضمّنة داخل APK. وضع Local SD لا يستخدم خدمة Face-Swap السحابية.</div>
+      </div>
+    </div>
+    <div class="grid-3" style="margin-top:10px">
+      <div>
+        <label for="aiModel">نموذج التوليد (AI Generation Model)</label>
+        <select id="aiModel">
+          <option value="local-sd" selected>🧠 Stable Diffusion المحلي داخل الهاتف (ARM64 CPU)</option>
+          <option value="hf-flux-gpu">⚡ HuggingFace FLUX.1 GPU Space + Flux.1 Pro Modeling (Safe=False · Ultra-Sharp)</option>
+          <option value="flux">Flux.1 Pro Realism (Modeling &amp; Editorial Unfiltered)</option>
+          <option value="flux-realism">Flux.1 Cinema GFX100RF (85mm f/1.4 RAW Micro-Contrast)</option>
+          <option value="flux-anime">Flux.1 CINEINK FUSION (Graphic Novel &amp; Illustration)</option>
+          <option value="turbo">SDXL Turbo High-Speed</option>
+        </select>
+      </div>
+      <div>
+        <label for="batchCount">عدد الصور في كل ضغطة (Batch Size)</label>
+        <select id="batchCount">
+          <option value="1">صورة واحدة (1 Ultra-HD Image)</option>
+          <option value="2" selected>صورتان مختلفتان (2 Distinct Seeds)</option>
+          <option value="4">4 صور مختلفة (4 Distinct Variations)</option>
+        </select>
+      </div>
+      <div>
+        <label for="size">الدقة الحقيقية (True HD Resolution)</label>
+        <select id="size">
+          <option value="1024x1536" selected>1024×1536 (Portrait Master 2:3 HD)</option>
+          <option value="1024x1024">1024×1024 (Square 1:1 Master HD)</option>
+          <option value="1536x1024">1536×1024 (Cinema Widescreen 3:2 HD)</option>
+          <option value="768x1344">768×1344 (Vertical Mobile Story 9:16)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <label for="ref">صورة الوجه المرجعية (Neural Flux2-Klein Face Reference — اختياري)</label>
+    <div class="drop-box" onclick="document.getElementById('ref').click()">
+      <input id="ref" type="file" accept="image/png,image/jpeg,image/webp" style="display:none">
+      <div id="refHint" class="muted">اضغط لرفع صورة الوجه المرجعية — سيتم إرسالها مباشرة لمحرك الذكاء الاصطناعي العصبي linoyts/Flux2-Klein-Face-Swap (بدون أي قص أو لصق سطحي!)</div>
+      <img id="rp" alt="Face Reference Preview" style="max-height:190px;margin:8px auto;display:none;border-radius:10px">
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px" id="refActions">
+      <button type="button" class="secondary" onclick="clearRef()">إزالة صورة الوجه المرجعية</button>
+      <span id="faceDetectBadge" class="muted"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <label for="prompt">الوصف (Prompt — يدعم أي وصف بحرية كاملة مع توليد بذور جديدة في كل ضغطة)</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px">
+      <button type="button" class="secondary" onclick="setPreset('gfx')">+ بورتريه سينمائي FUJIFILM GFX100RF</button>
+      <button type="button" class="secondary" onclick="setPreset('cineink')">+ كوميكس CINEINK FUSION</button>
+      <button type="button" class="secondary" onclick="setPreset('museum')">+ المتحف الجيولوجي المصري</button>
+      <button type="button" class="secondary" onclick="setPreset('noir')">+ بورتريه درامي Chiaroscuro</button>
+    </div>
+    <textarea id="prompt" rows="3" placeholder="اكتب وصف الصورة الجديدة...">Hyper-realistic cinematic portrait, shot on FUJIFILM GFX100RF medium format camera, 85mm f/1.4 prime lens, crisp studio lighting, natural skin micro-texture with visible pores, tack-sharp eyes, 8k raw photo</textarea>
+
+    <label for="neg">الوصف السلبي (Negative Prompt)</label>
+    <textarea id="neg" rows="2">blur, low quality, dull colors, dark overlay, distorted face, plastic skin, CGI, watermark, text</textarea>
+
+    <div class="grid-3">
+      <div>
+        <label for="stepsInput">خطوات الدمج العصبي (Flux2-Klein Steps): <span id="sv" class="ok">4</span></label>
+        <input id="stepsInput" type="range" min="2" max="12" step="1" value="4" oninput="document.getElementById('sv').textContent=this.value">
+      </div>
+      <div>
+        <label for="sigPos">توقيع FadeL البنفسجي</label>
+        <select id="sigPos">
+          <option value="bottom-left" selected>أسفل اليسار (بدون أي تعتيم للصورة)</option>
+          <option value="bottom-right">أسفل اليمين (بدون أي تعتيم للصورة)</option>
+          <option value="none">بدون توقيع</option>
+        </select>
+      </div>
+      <div>
+        <label for="seed">البذرة (Seed: -1 = صور جديدة في كل ضغطة)</label>
+        <input id="seed" type="number" value="-1">
+      </div>
+    </div>
+
+<div style="margin-top:8px;max-width:240px">
+      <label for="localSteps">خطوات Stable Diffusion المحلي (Local Steps)</label>
+      <input id="localSteps" type="number" min="1" max="40" value="20">
+    </div>
+    <button id="go" type="button" onclick="generateBatch()">🚀 توليد الصور بجودة Ultra-HD الآن (Generate Ultra-HD Batch)</button>
+    <div id="msg" class="muted" style="margin-top:8px;font-weight:700">جاهز للتوليد الفوري بجودة كاملة بدون أي علامة مائية أو لصق سطحي.</div>
+
+    <div id="resultsContainer" class="results-grid"></div>
+  </section>
+</main>
+
+<script>
+// Connect to parent/top FreeApp bridge when running inside freehtmltoapk Android APK
+const getFreeApp = () => window.FreeApp || (window.parent && window.parent.FreeApp) || (window.top && window.top.FreeApp) || null;
+const $ = id => document.getElementById(id);
+
+function openLocalSdUi() {
+  if (window.AndroidBridge && AndroidBridge.openLocalStableDiffusion) {
+    AndroidBridge.openLocalStableDiffusion();
+  } else {
+    $('msg').textContent = 'افتح Stable Diffusion المحلي من تطبيق Unified Studio.';
+  }
+}
+
+function importLocalSdModel() {
+  if (window.AndroidBridge && AndroidBridge.importStableDiffusionModel) {
+    AndroidBridge.importStableDiffusionModel();
+  } else {
+    $('msg').textContent = 'استيراد الموديل متاح من داخل APK.';
+  }
+}
+
+async function refreshLocalSdStatus() {
+  const status = $('status');
+  if (!status) return;
+  try {
+    const response = await fetch('/api/local-sd/status', { cache: 'no-store' });
+    const data = await response.json();
+    if (!data.available) {
+      status.className = 'muted';
+      status.textContent = 'المحرك المحلي غير متصل. افتح التطبيق من APK ثم اضغط فتح واجهة المحرك.';
+    } else if (data.state === 'ready') {
+      status.className = 'ok';
+      status.textContent = 'المحرك المحلي جاهز والموديل محمّل ✓';
+    } else {
+      status.className = 'muted';
+      status.textContent = 'المحرك يعمل، لكن لا يوجد موديل محمّل. استورد ملف موديل ثم اضغط Load models في واجهة المحرك.';
+    }
+  } catch (_) {
+    status.className = 'muted';
+    status.textContent = 'تعذر فحص المحرك المحلي.';
+  }
+}
+window.addEventListener('load', refreshLocalSdStatus);
+window.addEventListener('focus', refreshLocalSdStatus);
+let refFileBlob = null;
+let __sdLanguage = 'ar';
+
+const PRESETS = {
+  gfx: "Hyper-realistic cinematic portrait of an Egyptian subject, shot on FUJIFILM GFX100RF medium format camera, 85mm f/1.4 prime lens, crisp natural lighting, rich dynamic range, natural skin micro-texture with visible pores, tack-sharp focus, 8k raw photograph",
+  cineink: "Masterwork graphic novel scene in authentic CINEINK FUSION style, bold hand-inked linework contours with varied line weights, vibrant painterly digital rendering, Kodachrome color palette, shot on FUJIFILM GFX100RF 45mm lens",
+  museum: "Cinematic wide shot inside the Egyptian Geological Museum in Cairo, golden volumetric sunlight illuminating towering prehistoric dinosaur skeletons and a curious young Egyptian boy looking up in wonder, Steven Spielberg cinematic atmosphere, FUJIFILM GFX100RF",
+  noir: "Intense dramatic portrait in chiaroscuro lighting, warm golden key light against deep shadows, wet Alexandrian street reflections at night, shot on FUJIFILM GFX100RF 85mm f/1.4, raw photo fidelity"
+};
+
+function setPreset(k) {
+  if (PRESETS[k]) $('prompt').value = PRESETS[k];
+}
+
+function clearRef() {
+  $('ref').value = '';
+  refFileBlob = null;
+  $('rp').style.display = 'none';
+  $('faceDetectBadge').textContent = '';
+  $('refHint').textContent = 'اضغط لرفع صورة الوجه المرجعية — سيتم إرسالها مباشرة لمحرك الذكاء الاصطناعي العصبي linoyts/Flux2-Klein-Face-Swap (بدون أي قص أو لصق سطحي!)';
+}
+
+$('ref').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  refFileBlob = f;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    $('rp').src = ev.target.result;
+    $('rp').style.display = 'block';
+    $('faceDetectBadge').className = 'ok';
+    $('faceDetectBadge').textContent = '✓ تم تجهيز صورة الوجه المرجعية للدمج العصبي عبر الفضاء السحابي linoyts/Flux2-Klein-Face-Swap';
+    $('refHint').textContent = 'الوجه المرجعي جاهز للدمج العصبي الحقيقي ✓';
+  };
+  reader.readAsDataURL(f);
+});
+
+function stampCleanSignatureOnly(ctx, w, h) {
+  const pos = $('sigPos').value;
+  if (pos === 'none') return;
+  ctx.save();
+  const fontSize = Math.max(24, Math.round(w * 0.036));
+  ctx.font = 'italic 700 ' + fontSize + 'px Georgia, serif';
+  ctx.fillStyle = '#4c1d95';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 3;
+  const pad = Math.round(w * 0.025);
+  const tx = pos === 'bottom-left' ? pad : (w - pad - fontSize * 3.1);
+  ctx.fillText('FadeL', tx, h - pad);
+  ctx.restore();
+}
+
+// Real Neural Cloud Face Swap (esm.sh/@gradio/client with handle_file + Native Gradio HTTP fallback)
+async function performCloudNeuralSwap(refBlob, tgtBlob, w, h, steps) {
+  // 1. Try esm.sh/@gradio/client (exact match to user's app.py)
+  try {
+    const mod = await import('https://esm.sh/@gradio/client@1.8.0');
+    const Client = mod.Client || (mod.default && mod.default.Client);
+    const handle_file = mod.handle_file || (mod.default && mod.default.handle_file) || (b => b);
+    if (Client) {
+      const client = await Client.connect("linoyts/Flux2-Klein-Face-Swap");
+      let width = w, height = h;
+      try {
+        const dimRes = await client.predict("/update_dimensions_from_image", {
+          target_image: handle_file(tgtBlob)
+        });
+        if (dimRes && Array.isArray(dimRes.data) && dimRes.data.length >= 2) {
+          width = Number(dimRes.data[0]) || w;
+          height = Number(dimRes.data[1]) || h;
+        }
+      } catch (_) {}
+      const swapRes = await client.predict("/face_swap", {
+        reference_face: handle_file(refBlob),
+        target_image: handle_file(tgtBlob),
+        seed: 0,
+        randomize_seed: true,
+        width: width,
+        height: height,
+        num_inference_steps: Number(steps) || 4,
+        guidance_scale: 1
+      });
+      if (swapRes && swapRes.data && swapRes.data[0]) {
+        const pair = swapRes.data[0];
+        const afterItem = Array.isArray(pair) ? (pair[1] || pair[0]) : pair;
+        const url = typeof afterItem === 'string' ? afterItem : (afterItem && (afterItem.url || afterItem.path));
+        if (url) return url.startsWith('http') ? url : ('https://linoyts-flux2-klein-face-swap.hf.space/gradio_api/file=' + url);
+      }
+    }
+  } catch (e) {
+    console.warn("esm.sh Gradio client fallback to native HTTP:", e);
+  }
+
+  // 2. Native HTTP Gradio v4/v5 call across Flux2-Klein and InSwapper_128 Spaces
+  const spaces = [
+    { host: 'https://linoyts-flux2-klein-face-swap.hf.space', api: 'face_swap', build: (r, t) => [r, t, 0, true, w, h, Number(steps) || 4, 1] },
+    { host: 'https://tonyassi-face-swap.hf.space', api: 'swap_faces', build: (r, t) => [r, t] },
+    { host: 'https://felixrosberg-face-swap.hf.space', api: 'predict', build: (r, t) => [t, r, 0, 0] }
+  ];
+  for (const sp of spaces) {
+    for (const prefix of ['/gradio_api', '']) {
+      try {
+        const fd = new FormData();
+        fd.append('files', refBlob, 'ref.jpg');
+        fd.append('files', tgtBlob, 'tgt.jpg');
+        const up = await fetch(sp.host + prefix + '/upload', { method: 'POST', body: fd });
+        if (!up.ok) continue;
+        const paths = await up.json();
+        if (!Array.isArray(paths) || paths.length < 2) continue;
+        const rObj = { path: paths[0], url: sp.host + prefix + '/file=' + paths[0], orig_name: 'ref.jpg', mime_type: 'image/jpeg', meta: { _type: 'gradio.FileData' } };
+        const tObj = { path: paths[1], url: sp.host + prefix + '/file=' + paths[1], orig_name: 'tgt.jpg', mime_type: 'image/jpeg', meta: { _type: 'gradio.FileData' } };
+        const callUrl = sp.host + prefix + '/call/' + sp.api;
+        const callResp = await fetch(callUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: sp.build(rObj, tObj) })
+        });
+        if (!callResp.ok) continue;
+        const { event_id } = await callResp.json();
+        if (!event_id) continue;
+        const sse = await fetch(callUrl + '/' + event_id);
+        const text = await sse.text();
+        for (const line of text.split('\n')) {
+          if (line.startsWith('data: ') && !line.includes('"msg"')) {
+            const parsed = JSON.parse(line.slice(6));
+            if (Array.isArray(parsed) && parsed[0]) {
+              const first = parsed[0];
+              const item = Array.isArray(first) ? (first[1] || first[0]) : first;
+              if (typeof item === 'string') return item;
+              if (item && item.url) return item.url;
+              if (item && item.path) return sp.host + prefix + '/file=' + item.path;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+async function loadImageClean(url, timeoutMs = 25000) {
+  // Try fetching as Blob first so canvas never gets tainted and CORS on <img> never blocks rendering
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timer);
+    if (resp.ok) {
+      const blob = await resp.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      await new Promise((res, rej) => {
+        img.onload = res;
+        img.onerror = rej;
+        img.src = objUrl;
+      });
+      return img;
+    }
+  } catch (_) {}
+
+  // Fallback 1: load with crossOrigin anonymous
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+      img.onload = () => { clearTimeout(t); resolve(); };
+      img.onerror = () => { clearTimeout(t); reject(new Error("load failed")); };
+      img.src = url;
+    });
+    return img;
+  } catch (_) {
+    // Fallback 2: load without crossOrigin so image still displays even if server omits CORS headers
+    const img2 = new Image();
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+      img2.onload = () => { clearTimeout(t); resolve(); };
+      img2.onerror = () => { clearTimeout(t); reject(new Error("load failed")); };
+      img2.src = url;
+    });
+    return img2;
+  }
+}
+
+// FUJIFILM GFX100RF Optical Micro-Contrast & Clarity Boost (eliminates dull/soft AI output)
+function applyGfx100rfMicroContrast(ctx, w, h) {
+  try {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const src = imgData.data;
+    const copy = new Uint8ClampedArray(src);
+    const amount = 0.28; // crisp optical micro-contrast without halo artifacts
+    for (let y = 1; y < h - 1; y++) {
+      const row = y * w * 4;
+      const up = (y - 1) * w * 4;
+      const dn = (y + 1) * w * 4;
+      for (let x = 1; x < w - 1; x++) {
+        const i = row + x * 4;
+        for (let c = 0; c < 3; c++) {
+          const center = copy[i + c];
+          const neighbors = (copy[up + x * 4 + c] + copy[dn + x * 4 + c] + copy[i - 4 + c] + copy[i + 4 + c]) * 0.25;
+          const sharpened = center + (center - neighbors) * amount * 2.2;
+          // Subtle S-curve contrast & vibrant color recovery
+          const norm = Math.min(255, Math.max(0, sharpened)) / 255;
+          const contrasted = (norm - 0.5) * 1.06 + 0.5;
+          src[i + c] = Math.min(255, Math.max(0, Math.round(contrasted * 255)));
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch (_) {}
+}
+
+// Try HuggingFace FLUX.1-schnell GPU Space directly via @gradio/client or Native HTTP
+async function tryHfFluxGpuSpace(promptText, w, h, seed) {
+  const fullPrompt = promptText + ", shot on FUJIFILM GFX100RF 85mm f/1.4, ultra-sharp 8k RAW photograph, natural skin microtexture, vibrant lighting";
+  try {
+    const mod = await import('https://esm.sh/@gradio/client@1.8.0');
+    const Client = mod.Client || (mod.default && mod.default.Client);
+    if (Client) {
+      const client = await Client.connect("black-forest-labs/FLUX.1-schnell");
+      const res = await client.predict("/infer", {
+        prompt: fullPrompt,
+        seed: seed % 2147483647,
+        randomize_seed: false,
+        width: w,
+        height: h,
+        num_inference_steps: 4
+      });
+      if (res && res.data && res.data[0]) {
+        const item = res.data[0];
+        const url = typeof item === 'string' ? item : (item && (item.url || item.path));
+        if (url) return url.startsWith('http') ? url : ('https://black-forest-labs-flux-1-schnell.hf.space/gradio_api/file=' + url);
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function generateSingleVariation(promptText, model, w, h, seed, idx, total) {
+  $('msg').textContent = `⏳ جاري توليد الصورة (${idx + 1} من ${total}) بدقة ${w}×${h} Ultra-HD (وضع الموديلينج الاحترافي بدون فلاتر)...`;
+
+  let genImg = null;
+  let usedHfGpu = false;
+  let usedLocalSD = false;
+
+  if (model === 'local-sd') {
+    $('msg').textContent = `⏳ Stable Diffusion المحلي يعمل على الهاتف — الصورة ${idx + 1} من ${total}...`;
+    const scale = Math.min(1, 768 / Math.max(w, h));
+    const localW = Math.max(64, Math.round((w * scale) / 8) * 8);
+    const localH = Math.max(64, Math.round((h * scale) / 8) * 8);
+    const response = await fetch('/api/local-sd/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: promptText,
+        negative_prompt: $('neg').value,
+        width: localW,
+        height: localH,
+        steps: Math.max(1, Math.min(40, Number($('localSteps').value) || 20)),
+        cfg_scale: 7.0,
+        seed
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Stable Diffusion المحلي فشل في التوليد.');
+    }
+    genImg = await loadImageClean(data.image, 900000);
+    usedLocalSD = true;
+  } else {
+    // Cloud generation options remain separate from the bundled local engine.
+    if (model === 'hf-flux-gpu') {
+    try {
+      const hfUrl = await tryHfFluxGpuSpace(promptText, w, h, seed);
+      if (hfUrl) {
+        genImg = await loadImageClean(hfUrl, 25000);
+        usedHfGpu = true;
+      }
+    } catch (_) {}
+  }
+
+  // 2. High-speed Flux.1 Pro with safe=false&nologo=true&private=true&enhance=true (never rejects fashion/modeling prompts!)
+  if (!genImg) {
+    const actualModel = model === 'hf-flux-gpu' ? 'flux' : model;
+    const cleanPrompt = encodeURIComponent(promptText + ", shot on FUJIFILM GFX100RF, masterpiece, ultra-detailed, high dynamic range, crisp focus, vibrant colors");
+    const fetchH = h + 36;
+    const urls = [
+      `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${w}&height=${fetchH}&seed=${seed}&model=${encodeURIComponent(actualModel)}&safe=false&nologo=true&private=true&enhance=true`,
+      `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${w}&height=${fetchH}&seed=${seed + 7}&model=flux&safe=false&nologo=true&private=true`
+    ];
+    for (const url of urls) {
+      try {
+        genImg = await loadImageClean(url, 26000);
+        break;
+      } catch (_) {}
+    }
+    }
+  }
+
+  if (!genImg) {
+    throw new Error("تعذر الوصول لخادم التوليد السحابي، تأكد من اتصال الإنترنت وأعد المحاولة.");
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+
+  if (usedHfGpu || usedLocalSD) {
+    ctx.drawImage(genImg, 0, 0, w, h);
+  } else {
+    // Crop bottom 36px so @pollinations.ai watermark is 100% physically removed
+    const srcW = genImg.naturalWidth || w;
+    const srcH = Math.max(h, (genImg.naturalHeight || (h + 36)) - 36);
+    ctx.drawImage(genImg, 0, 0, srcW, srcH, 0, 0, w, h);
+  }
+
+  // Apply FUJIFILM GFX100RF optical micro-contrast & sharpening so the image is razor-sharp and never dull
+  applyGfx100rfMicroContrast(ctx, w, h);
+
+  let usedNeuralSwap = false;
+  if (refFileBlob && model !== 'local-sd') {
+    $('msg').textContent = `⏳ جاري عزل منطقة البورتريه ودمج الوجه المرجعي عصبياً عبر linoyts/Flux2-Klein-Face-Swap للصورة #${idx + 1}...`;
+    const steps = Number($('stepsInput').value) || 4;
+
+    // Smart Headshot Crop & Restore on the generated modeling scene so face resolution is 4x sharper and never rejected!
+    let cropInfo = null;
+    let tgtBlobForSwap = null;
+    let swapW = w, swapH = h;
+    try {
+      if (window.faceapi) {
+        const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+        await window.faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
+        const det = await window.faceapi.detectSingleFace(canvas, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.25 }));
+        if (det && det.box && (det.box.width < w * 0.42 || det.box.height < h * 0.42)) {
+          const cx = det.box.x + det.box.width / 2;
+          const cy = det.box.y + det.box.height / 2;
+          const side = Math.min(Math.max(det.box.width, det.box.height) * 2.6, Math.min(w, h));
+          const sx = Math.max(0, Math.min(w - side, Math.round(cx - side / 2)));
+          const sy = Math.max(0, Math.min(h - side, Math.round(cy - side / 2)));
+          const sw = Math.round(Math.min(side, w - sx));
+          const sh = Math.round(Math.min(side, h - sy));
+          const headCanvas = document.createElement('canvas');
+          headCanvas.width = 768; headCanvas.height = 768;
+          headCanvas.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, 768, 768);
+          tgtBlobForSwap = await new Promise(r => headCanvas.toBlob(r, 'image/jpeg', 0.95));
+          cropInfo = { sx, sy, sw, sh };
+          swapW = 768; swapH = 768;
+        }
+      }
+    } catch (_) {}
+
+    if (!tgtBlobForSwap) {
+      tgtBlobForSwap = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+    }
+
+    const swappedUrl = await performCloudNeuralSwap(refFileBlob, tgtBlobForSwap, swapW, swapH, steps);
+    if (swappedUrl) {
+      try {
+        const swappedImg = await loadImageClean(swappedUrl, 25000);
+        if (cropInfo) {
+          const patchCanvas = document.createElement('canvas');
+          patchCanvas.width = cropInfo.sw; patchCanvas.height = cropInfo.sh;
+          const pCtx = patchCanvas.getContext('2d');
+          pCtx.drawImage(swappedImg, 0, 0, cropInfo.sw, cropInfo.sh);
+
+          const maskCanvas = document.createElement('canvas');
+          maskCanvas.width = cropInfo.sw; maskCanvas.height = cropInfo.sh;
+          const mCtx = maskCanvas.getContext('2d');
+          const feather = Math.max(12, Math.round(cropInfo.sw * 0.06));
+          mCtx.filter = `blur(${feather}px)`;
+          mCtx.fillStyle = '#fff';
+          mCtx.fillRect(feather, feather, cropInfo.sw - feather * 2, cropInfo.sh - feather * 2);
+
+          pCtx.globalCompositeOperation = 'destination-in';
+          pCtx.drawImage(maskCanvas, 0, 0);
+          ctx.drawImage(patchCanvas, cropInfo.sx, cropInfo.sy);
+        } else {
+          ctx.drawImage(swappedImg, 0, 0, w, h);
+        }
+        usedNeuralSwap = true;
+      } catch (_) {}
+    }
+  }
+
+  stampCleanSignatureOnly(ctx, w, h);
+  return { canvas, seed, usedNeuralSwap, usedLocalSD };
+}
+
+async function saveCanvasImage(canvas, filename) {
+  const dataUrl = canvas.toDataURL('image/png', 1.0);
+  const fa = getFreeApp();
+  if (fa && typeof fa.saveFile === 'function') {
+    try {
+      await fa.saveFile(filename, 'image/png', dataUrl);
+      if (fa.toast) fa.toast('✅ تم حفظ الصورة في مجلد التنزيلات: ' + filename);
+      return;
+    } catch (_) {}
+  }
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function generateBatch() {
+  const promptText = $('prompt').value.trim() || PRESETS.gfx;
+  const [w, h] = $('size').value.split('x').map(Number);
+  const model = $('aiModel').value;
+  const batchCount = Number($('batchCount').value);
+  const userSeed = Number($('seed').value);
+  const baseSeed = userSeed === -1 ? Math.floor(100000 + Math.random() * 8900000) : userSeed;
+
+  const btn = $('go');
+  btn.disabled = true;
+  const container = $('resultsContainer');
+  container.innerHTML = '';
+
+  try {
+    for (let i = 0; i < batchCount; i++) {
+      const currentSeed = baseSeed + i * 104729;
+      const res = await generateSingleVariation(promptText, model, w, h, currentSeed, i, batchCount);
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      const titleBar = document.createElement('div');
+      titleBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;flex-wrap:wrap;gap:6px';
+      const swapTag = res.usedLocalSD ? ' · Stable Diffusion محلي ARM64 ✓' : (res.usedNeuralSwap ? ' · Flux2-Klein Neural Face-Swap ✓' : '');
+      titleBar.innerHTML = `<strong class="ok">الصورة #${i + 1} (${w}×${h} HD · Seed: ${res.seed}${swapTag})</strong>`;
+
+      const dlBtn = document.createElement('button');
+      dlBtn.type = 'button';
+      dlBtn.className = 'secondary gold';
+      dlBtn.textContent = '💾 تحميل PNG بأعلى جودة';
+      dlBtn.onclick = () => saveCanvasImage(res.canvas, `SD_PRO_FadeL_${res.seed}_${w}x${h}.png`);
+      titleBar.appendChild(dlBtn);
+      card.appendChild(titleBar);
+      card.appendChild(res.canvas);
+      container.appendChild(card);
+    }
+    $('msg').textContent = `✅ تم توليد ${batchCount} صور بدقة ${w}×${h} Ultra-HD بنجاح (بدون علامة مائية وبدون أي لصق سطحي)!`;
+  } catch (err) {
+    $('msg').textContent = '⚠ ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setLanguage(lang) {
+  __sdLanguage = lang === 'en' ? 'en' : 'ar';
+  document.documentElement.lang = __sdLanguage;
+  document.documentElement.dir = __sdLanguage === 'ar' ? 'rtl' : 'ltr';
+}
+
+function toggleUiLang() {
+  setLanguage(__sdLanguage === 'ar' ? 'en' : 'ar');
+}
+</script>
+</body>
+</html>

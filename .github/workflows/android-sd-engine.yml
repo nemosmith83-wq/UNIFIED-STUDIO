@@ -1,6 +1,6 @@
 # Rebuild the native engine after authentication and frontend fixes.
 name: Build Stable Diffusion Android ARM64 Engine
-# Rebuild the pinned ARM64 engine for the latest Android application revision.
+# Builds the ARM64 CPU server with its own web UI embedded, then packages it into the Android APK.
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
       - ".github/workflows/android-sd-engine.yml"
       - "android-native/app/src/main/java/com/unifiedstudio/android/MainActivity.java"
       - ".github/workflows/android-native.yml"
+      - "backend/**"
+      - "frontend/**"
+      - "android-native/app/build.gradle"
+      - "android-native/app/src/main/AndroidManifest.xml"
   workflow_dispatch:
 
 permissions:
@@ -32,7 +36,18 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build
+          sudo apt-get install -y ninja-build patchelf
+
+      - name: Set up Node.js and pnpm for embedded Stable Diffusion Web UI
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.1 --activate
+          pnpm --version
 
       - name: Checkout pinned stable-diffusion.cpp source
         run: |
@@ -40,7 +55,7 @@ jobs:
           git -C engine checkout fc350be2ceeeb859bcc201ac435591ed7d46821d
           git -C engine submodule update --init --recursive
 
-      - name: Configure Android ARM64 CPU engine
+      - name: Configure Android ARM64 CPU engine with embedded Web UI
         run: |
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           cmake -S engine -B engine/build-android -G Ninja \
@@ -53,10 +68,13 @@ jobs:
             -DSD_BUILD_EXAMPLES=ON \
             -DSD_WEBP=OFF \
             -DSD_WEBM=OFF \
-            -DSD_SERVER_BUILD_FRONTEND=OFF
+            -DSD_SERVER_BUILD_FRONTEND=ON
 
-      - name: Compile native server
-        run: cmake --build engine/build-android --target sd-server --parallel 2
+      - name: Compile native server and embedded frontend
+        run: |
+          set -euo pipefail
+          cmake --build engine/build-android --target sd-server --parallel 2
+          test -s engine/examples/server/frontend/dist/gen_index_html.h
 
       - name: Verify ARM64 executable and package runtime
         run: |
@@ -65,9 +83,15 @@ jobs:
           test -s "$BIN"
           mkdir -p dist/native/arm64-v8a
           cp "$BIN" dist/native/arm64-v8a/sd-server
-          cp "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" dist/native/arm64-v8a/
+          cp "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" dist/native/arm64-v8a/libsdserver_cxx.so
+          # Give the bundled C++ runtime a private SONAME to avoid collisions
+          # with other native libraries included by Android/Chaquopy.
+          patchelf --set-soname libsdserver_cxx.so dist/native/arm64-v8a/libsdserver_cxx.so
+          patchelf --replace-needed libc++_shared.so libsdserver_cxx.so dist/native/arm64-v8a/sd-server
           "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h dist/native/arm64-v8a/sd-server | grep -E 'Class:|Machine:'
-          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -d dist/native/arm64-v8a/sd-server | grep NEEDED || true
+          "$ANDROID_HOME/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -d dist/native/arm64-v8a/sd-server | grep NEEDED
+          test -x dist/native/arm64-v8a/sd-server
+          test -s dist/native/arm64-v8a/libsdserver_cxx.so
           sha256sum dist/native/arm64-v8a/*
           cd dist && zip -r ../stable-diffusion-android-arm64-cpu.zip native
 
