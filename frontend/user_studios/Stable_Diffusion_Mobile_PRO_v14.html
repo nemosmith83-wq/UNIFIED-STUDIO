@@ -60,15 +60,21 @@
   <section class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div>
-        <b>حالة المحرك السحابي (Flux.1 Ultra-HD + Flux2-Klein Neural Face-Swap)</b>
-        <div id="status" class="ok">متصل ✓ — محرك Flux.1 Pro HD + الفضاء العصبي linoyts/Flux2-Klein-Face-Swap (تم إلغاء لصق الوجه ثنائي الأبعاد نهائياً)</div>
+        <b>حالة Stable Diffusion المحلي (ARM64 CPU)</b>
+        <div id="status" class="muted">جاري فحص المحرك المحلي...</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button type="button" class="secondary" onclick="openLocalSdUi()">فتح واجهة المحرك وتحميل الموديل</button>
+          <button type="button" class="secondary" onclick="importLocalSdModel()">استيراد ملف موديل من الهاتف</button>
+        </div>
+        <div class="muted" style="margin-top:6px">التوليد المحلي يحتاج ملف موديل متوافقًا؛ أوزان الموديل غير مضمّنة داخل APK. وضع Local SD لا يستخدم خدمة Face-Swap السحابية.</div>
       </div>
     </div>
     <div class="grid-3" style="margin-top:10px">
       <div>
         <label for="aiModel">نموذج التوليد (AI Generation Model)</label>
         <select id="aiModel">
-          <option value="hf-flux-gpu" selected>⚡ HuggingFace FLUX.1 GPU Space + Flux.1 Pro Modeling (Safe=False · Ultra-Sharp)</option>
+          <option value="local-sd" selected>🧠 Stable Diffusion المحلي داخل الهاتف (ARM64 CPU)</option>
+          <option value="hf-flux-gpu">⚡ HuggingFace FLUX.1 GPU Space + Flux.1 Pro Modeling (Safe=False · Ultra-Sharp)</option>
           <option value="flux">Flux.1 Pro Realism (Modeling &amp; Editorial Unfiltered)</option>
           <option value="flux-realism">Flux.1 Cinema GFX100RF (85mm f/1.4 RAW Micro-Contrast)</option>
           <option value="flux-anime">Flux.1 CINEINK FUSION (Graphic Novel &amp; Illustration)</option>
@@ -140,6 +146,10 @@
       </div>
     </div>
 
+<div style="margin-top:8px;max-width:240px">
+      <label for="localSteps">خطوات Stable Diffusion المحلي (Local Steps)</label>
+      <input id="localSteps" type="number" min="1" max="40" value="20">
+    </div>
     <button id="go" type="button" onclick="generateBatch()">🚀 توليد الصور بجودة Ultra-HD الآن (Generate Ultra-HD Batch)</button>
     <div id="msg" class="muted" style="margin-top:8px;font-weight:700">جاهز للتوليد الفوري بجودة كاملة بدون أي علامة مائية أو لصق سطحي.</div>
 
@@ -151,6 +161,46 @@
 // Connect to parent/top FreeApp bridge when running inside freehtmltoapk Android APK
 const getFreeApp = () => window.FreeApp || (window.parent && window.parent.FreeApp) || (window.top && window.top.FreeApp) || null;
 const $ = id => document.getElementById(id);
+
+function openLocalSdUi() {
+  if (window.AndroidBridge && AndroidBridge.openLocalStableDiffusion) {
+    AndroidBridge.openLocalStableDiffusion();
+  } else {
+    $('msg').textContent = 'افتح Stable Diffusion المحلي من تطبيق Unified Studio.';
+  }
+}
+
+function importLocalSdModel() {
+  if (window.AndroidBridge && AndroidBridge.importStableDiffusionModel) {
+    AndroidBridge.importStableDiffusionModel();
+  } else {
+    $('msg').textContent = 'استيراد الموديل متاح من داخل APK.';
+  }
+}
+
+async function refreshLocalSdStatus() {
+  const status = $('status');
+  if (!status) return;
+  try {
+    const response = await fetch('/api/local-sd/status', { cache: 'no-store' });
+    const data = await response.json();
+    if (!data.available) {
+      status.className = 'muted';
+      status.textContent = 'المحرك المحلي غير متصل. افتح التطبيق من APK ثم اضغط فتح واجهة المحرك.';
+    } else if (data.state === 'ready') {
+      status.className = 'ok';
+      status.textContent = 'المحرك المحلي جاهز والموديل محمّل ✓';
+    } else {
+      status.className = 'muted';
+      status.textContent = 'المحرك يعمل، لكن لا يوجد موديل محمّل. استورد ملف موديل ثم اضغط Load models في واجهة المحرك.';
+    }
+  } catch (_) {
+    status.className = 'muted';
+    status.textContent = 'تعذر فحص المحرك المحلي.';
+  }
+}
+window.addEventListener('load', refreshLocalSdStatus);
+window.addEventListener('focus', refreshLocalSdStatus);
 let refFileBlob = null;
 let __sdLanguage = 'ar';
 
@@ -393,9 +443,35 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
 
   let genImg = null;
   let usedHfGpu = false;
+  let usedLocalSD = false;
 
-  // 1. If HF FLUX.1 GPU Space is selected, try HuggingFace FLUX.1-schnell GPU first
-  if (model === 'hf-flux-gpu') {
+  if (model === 'local-sd') {
+    $('msg').textContent = `⏳ Stable Diffusion المحلي يعمل على الهاتف — الصورة ${idx + 1} من ${total}...`;
+    const scale = Math.min(1, 768 / Math.max(w, h));
+    const localW = Math.max(64, Math.round((w * scale) / 8) * 8);
+    const localH = Math.max(64, Math.round((h * scale) / 8) * 8);
+    const response = await fetch('/api/local-sd/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: promptText,
+        negative_prompt: $('neg').value,
+        width: localW,
+        height: localH,
+        steps: Math.max(1, Math.min(40, Number($('localSteps').value) || 20)),
+        cfg_scale: 7.0,
+        seed
+      })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Stable Diffusion المحلي فشل في التوليد.');
+    }
+    genImg = await loadImageClean(data.image, 900000);
+    usedLocalSD = true;
+  } else {
+    // Cloud generation options remain separate from the bundled local engine.
+    if (model === 'hf-flux-gpu') {
     try {
       const hfUrl = await tryHfFluxGpuSpace(promptText, w, h, seed);
       if (hfUrl) {
@@ -420,6 +496,7 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
         break;
       } catch (_) {}
     }
+    }
   }
 
   if (!genImg) {
@@ -431,7 +508,7 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
   canvas.height = h;
   const ctx = canvas.getContext("2d");
 
-  if (usedHfGpu) {
+  if (usedHfGpu || usedLocalSD) {
     ctx.drawImage(genImg, 0, 0, w, h);
   } else {
     // Crop bottom 36px so @pollinations.ai watermark is 100% physically removed
@@ -444,7 +521,7 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
   applyGfx100rfMicroContrast(ctx, w, h);
 
   let usedNeuralSwap = false;
-  if (refFileBlob) {
+  if (refFileBlob && model !== 'local-sd') {
     $('msg').textContent = `⏳ جاري عزل منطقة البورتريه ودمج الوجه المرجعي عصبياً عبر linoyts/Flux2-Klein-Face-Swap للصورة #${idx + 1}...`;
     const steps = Number($('stepsInput').value) || 4;
 
@@ -509,7 +586,7 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
   }
 
   stampCleanSignatureOnly(ctx, w, h);
-  return { canvas, seed, usedNeuralSwap };
+  return { canvas, seed, usedNeuralSwap, usedLocalSD };
 }
 
 async function saveCanvasImage(canvas, filename) {
@@ -551,7 +628,7 @@ async function generateBatch() {
       card.className = 'result-card';
       const titleBar = document.createElement('div');
       titleBar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px;flex-wrap:wrap;gap:6px';
-      const swapTag = res.usedNeuralSwap ? ' · Flux2-Klein Neural Face-Swap ✓' : '';
+      const swapTag = res.usedLocalSD ? ' · Stable Diffusion محلي ARM64 ✓' : (res.usedNeuralSwap ? ' · Flux2-Klein Neural Face-Swap ✓' : '');
       titleBar.innerHTML = `<strong class="ok">الصورة #${i + 1} (${w}×${h} HD · Seed: ${res.seed}${swapTag})</strong>`;
 
       const dlBtn = document.createElement('button');
