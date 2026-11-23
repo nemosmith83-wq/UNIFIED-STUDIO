@@ -45,11 +45,10 @@ jobs:
           test -n "$OUTER"
           test -s "$OUTER"
           echo "Using engine artifact file: $OUTER"
-          mkdir -p /tmp/sd-engine/outer /tmp/sd-engine/inner
-          unzip -q "$OUTER" -d /tmp/sd-engine/outer
-          INNER="/tmp/sd-engine/outer/stable-diffusion-android-arm64-cpu.zip"
-          test -s "$INNER"
-          unzip -q "$INNER" -d /tmp/sd-engine/inner
+          mkdir -p /tmp/sd-engine/inner
+          # download-artifact already extracts the artifact wrapper; the remaining
+          # file is the engine ZIP produced by the native-engine workflow.
+          unzip -q "$OUTER" -d /tmp/sd-engine/inner
           NATIVE="/tmp/sd-engine/inner/native/arm64-v8a"
           BIN="$NATIVE/sd-server"
           test -s "$BIN"
