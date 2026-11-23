@@ -1,0 +1,28 @@
+services:
+  content-studio:
+    build: ./content_studio
+    ports:
+      - "8081:8080"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      DATABASE_PATH: /data/content_studio.db
+    volumes:
+      - content-studio-data:/data
+    restart: unless-stopped
+  it-support:
+    build: ./it_support_agent
+    ports:
+      - "8082:8080"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      DATABASE_PATH: /data/it_support.db
+    volumes:
+      - it-support-data:/data
+    restart: unless-stopped
+volumes:
+  content-studio-data:
+  it-support-data:
