@@ -1,12 +1,6 @@
 name: Build native Unified Studio Android APK
 
 on:
-  push:
-    paths:
-      - "android-native/**"
-      - "backend/**"
-      - "frontend/**"
-      - ".github/workflows/android-native.yml"
   workflow_run:
     workflows: ["Build Stable Diffusion Android ARM64 Engine"]
     types: [completed]
@@ -17,58 +11,57 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name == 'push' || github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Checkout repository
+      - name: Checkout exact source that built the ARM64 engine
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
+          ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Download compiled ARM64 engine
+      - name: Download ARM64 engine artifact from the successful engine run
         uses: actions/download-artifact@v4
         with:
           name: stable-diffusion-android-arm64-cpu
           path: downloaded-engine
-          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 45183107657 }}
+          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare executable native libraries for Android
+      - name: Package engine as Android native libraries
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y patchelf
-          set -x
-          find downloaded-engine -maxdepth 4 -type f -ls
           OUTER="$(find downloaded-engine -type f -name 'stable-diffusion-android-arm64-cpu.zip' -print -quit)"
           test -n "$OUTER"
           test -s "$OUTER"
-          echo "Using engine artifact file: $OUTER"
-          mkdir -p /tmp/sd-engine/inner
-          # download-artifact already extracts the artifact wrapper; the remaining
-          # file is the engine ZIP produced by the native-engine workflow.
-          unzip -q "$OUTER" -d /tmp/sd-engine/inner
-          NATIVE="/tmp/sd-engine/inner/native/arm64-v8a"
+          mkdir -p /tmp/sd-engine
+          unzip -q "$OUTER" -d /tmp/sd-engine
+          NATIVE="/tmp/sd-engine/native/arm64-v8a"
           BIN="$NATIVE/sd-server"
+          RUNTIME="$NATIVE/libc++_shared.so"
           test -s "$BIN"
           test -x "$BIN"
+          test -s "$RUNTIME"
 
-          if test -s "$NATIVE/libc++_shared.so"; then
-            mv "$NATIVE/libc++_shared.so" "$NATIVE/libsdserver_cxx.so"
-            patchelf --set-soname libsdserver_cxx.so "$NATIVE/libsdserver_cxx.so"
-            patchelf --replace-needed libc++_shared.so libsdserver_cxx.so "$BIN"
-          fi
-          test -s "$NATIVE/libsdserver_cxx.so"
+          mv "$RUNTIME" "$NATIVE/libsdserver_cxx.so"
+          patchelf --set-soname libsdserver_cxx.so "$NATIVE/libsdserver_cxx.so"
+          patchelf --replace-needed libc++_shared.so libsdserver_cxx.so "$BIN"
+
+          readelf -h "$BIN" | grep -F "AArch64"
           readelf -d "$BIN" | grep -F "libsdserver_cxx.so"
           ! readelf -d "$BIN" | grep -F "libc++_shared.so"
 
-          mkdir -p android-native/app/src/main/jniLibs/arm64-v8a
-          cp "$BIN" android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
-          cp "$NATIVE/libsdserver_cxx.so" android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
-          chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
-          chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
-          file android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
+          DEST="android-native/app/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$DEST"
+          cp "$BIN" "$DEST/libsd-server.so"
+          cp "$NATIVE/libsdserver_cxx.so" "$DEST/libsdserver_cxx.so"
+          chmod 755 "$DEST/libsd-server.so" "$DEST/libsdserver_cxx.so"
+          test -s "$DEST/libsd-server.so"
+          test -s "$DEST/libsdserver_cxx.so"
+          file "$DEST/libsd-server.so" "$DEST/libsdserver_cxx.so"
+          sha256sum "$DEST"/*.so
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -94,26 +87,33 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Build debug APK
+      - name: Build debug APK with bundled ARM64 engine
         working-directory: android-native
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace clean assembleDebug
 
-      - name: Verify final APK contents
+      - name: Verify APK, native engine, and app assets
         run: |
           set -euo pipefail
           APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          unzip -l "$APK" | grep -F "assets/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf"
-          unzip -l "$APK" | grep -F "assets/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf"
+          apksigner verify --verbose "$APK"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsd-server.so"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsdserver_cxx.so"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/Stable_Diffusion_Mobile_PRO_v14.html"
+          unzip -l "$APK" | grep -F "assets/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf"
+          unzip -l "$APK" | grep -F "assets/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf"
+          if unzip -l "$APK" | grep -F "assets/native/arm64-v8a/sd-server"; then
+            echo "ERROR: native engine was packaged as an asset instead of a native library."
+            exit 1
+          fi
+          sha256sum "$APK"
+          file "$APK"
 
-      - name: Upload APK
+      - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: unified-studio-native-android-debug
+          name: unified-studio-native-android-arm64-final
           path: android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
