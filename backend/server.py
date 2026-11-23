@@ -36,6 +36,7 @@ import agent
 import tools
 import talent
 import auth
+from creative_workflows import get_workflows, build_production_messages, parse_production_json, validate_production_package
 
 load_dotenv()
 
@@ -80,6 +81,15 @@ auth.init_db()
 # ─────────────────────────────────────────────────────────────────────────────
 # Request/Response Models
 # ─────────────────────────────────────────────────────────────────────────────
+
+class CreativeProductionRequest(BaseModel):
+    studio: str = Field(min_length=1, max_length=40)
+    deliverable: str = Field(min_length=1, max_length=80)
+    brief: str = Field(min_length=10, max_length=16000)
+    asset_count: int = Field(default=1, ge=1, le=4)
+    engine: str = Field(default="pollinations", regex="^(pollinations|stable_horde)$")
+    generate_assets: bool = False
+
 
 class MessageRequest(BaseModel):
     message: str = Field(min_length=1, max_length=16000)
@@ -654,6 +664,85 @@ def create_talent_advertisement(req: AdvertisementRequest):
     if not req.offer.strip():
         return JSONResponse(status_code=400, content={"error": "A job offer is required."})
     return {"success": True, **talent.generate_advertisement(req.offer, req.preferences)}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Creative Production Workbench
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/creative/workflows")
+def creative_workflows(request: Request):
+    """Return the production studio contracts to the authenticated workbench."""
+    user, error_response = _require_user(request)
+    if error_response:
+        return error_response
+    return get_workflows()
+
+
+@app.post("/api/creative/production")
+def creative_production(req: CreativeProductionRequest, request: Request):
+    """Create a complete production package and optionally generate visual assets."""
+    user, error_response = _require_user(request)
+    if error_response:
+        return error_response
+    try:
+        messages = build_production_messages(req.studio, req.deliverable, req.brief, req.asset_count)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(exc)})
+
+    try:
+        raw = agent._llm(messages, max_tokens=3500, temperature=0.65)
+        production = parse_production_json(raw)
+    except Exception as exc:
+        return JSONResponse(status_code=502, content={
+            "success": False,
+            "error": "Production generation failed. Check the configured LLM provider and retry.",
+            "detail": str(exc)[:240],
+        })
+
+    blockers = validate_production_package(production, req.studio, req.asset_count)
+    missing = production.get("missing_information", [])
+    if not isinstance(missing, list):
+        missing = ["Model returned an invalid missing_information field"]
+        blockers.append("missing_information must be a list")
+
+    session_id = _scoped_session(user, None)
+    assets = []
+    if req.generate_assets and req.studio in {"image", "video", "comic", "poster", "environment", "talent"}:
+        prompts = production.get("image_prompts", [])
+        prompts = [p.strip() for p in prompts if isinstance(p, str) and p.strip()]
+        for index, prompt in enumerate(prompts[:4], start=1):
+            try:
+                image, error = tools.ImageGenerator.generate(
+                    prompt=prompt,
+                    engine=req.engine,
+                    width=768,
+                    height=1024,
+                    negative_prompt="blurry, low quality, malformed anatomy, unwanted text, watermark",
+                    model="Deliberate",
+                    steps=25,
+                    cfg_scale=7.0,
+                    nsfw=False,
+                )
+                if error or image is None:
+                    assets.append({"index": index, "success": False, "error": str(error or "No image returned")[:240]})
+                    continue
+                filename = _save_scoped_image(user, image)
+                mem.save_image_metadata(session_id, filename, prompt, req.engine)
+                assets.append({"index": index, "success": True, "filename": filename, "url": f"/outputs/{filename}", "prompt": prompt})
+            except Exception as exc:
+                assets.append({"index": index, "success": False, "error": str(exc)[:240]})
+
+    asset_failures = [item for item in assets if not item.get("success")]
+    needs_review = bool(blockers or missing or asset_failures)
+    return {
+        "success": True,
+        "status": "needs-review" if needs_review else "completed",
+        "session_id": session_id,
+        "production": production,
+        "qa": {"blockers": blockers, "missing_information": missing},
+        "assets": assets,
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
