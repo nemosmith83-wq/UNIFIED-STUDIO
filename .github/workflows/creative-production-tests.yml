@@ -1,0 +1,29 @@
+name: Creative Production Workbench Tests
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/creative_workflows.py"
+      - "backend/server.py"
+      - "tests/test_creative_workflows.py"
+      - ".github/workflows/creative-production-tests.yml"
+  pull_request:
+    paths:
+      - "backend/creative_workflows.py"
+      - "backend/server.py"
+      - "tests/test_creative_workflows.py"
+      - ".github/workflows/creative-production-tests.yml"
+
+jobs:
+  python-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Python modules
+        run: python -m compileall -q backend
+      - name: Run creative workflow tests
+        run: python -m unittest tests.test_creative_workflows -v
