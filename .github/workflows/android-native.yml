@@ -39,8 +39,12 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y patchelf
-          OUTER="downloaded-engine/stable-diffusion-android-arm64-cpu.zip"
+          set -x
+          find downloaded-engine -maxdepth 4 -type f -ls
+          OUTER="$(find downloaded-engine -type f -name 'stable-diffusion-android-arm64-cpu.zip' -print -quit)"
+          test -n "$OUTER"
           test -s "$OUTER"
+          echo "Using engine artifact file: $OUTER"
           mkdir -p /tmp/sd-engine/outer /tmp/sd-engine/inner
           unzip -q "$OUTER" -d /tmp/sd-engine/outer
           INNER="/tmp/sd-engine/outer/stable-diffusion-android-arm64-cpu.zip"
