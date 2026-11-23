@@ -9,7 +9,7 @@ def test_health_and_ticket_triage_without_key():
     response=client.post("/api/tickets",json={"title":"Cannot connect","description":"VPN disconnects","requester":"Test"})
     assert response.status_code==201
     tickets=client.get("/api/tickets").get_json()
-    assert any(t["title"]=="Cannot connect" and t["suggested_fix"] for t in tickets)
+    assert any(t["title"]=="Cannot connect" and t["suggested_fix"] and t["owner"] for t in tickets)
 def test_fixes_assets_and_known_issue():
     client=app.app.test_client()
     assert client.post("/api/fixes",json={"title":"VPN fix","symptoms":"VPN disconnect","solution":"Reconnect","verified":True}).status_code==201
