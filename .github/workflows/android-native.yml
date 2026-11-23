@@ -28,16 +28,16 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Download compiled ARM64 engine
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || github.event_name == 'push'
         uses: actions/download-artifact@v4
         with:
           name: stable-diffusion-android-arm64-cpu
           path: downloaded-engine
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 45158777100 }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package native engine into Android assets
-        if: github.event_name == 'workflow_run'
+        if: github.event_name == 'workflow_run' || github.event_name == 'push'
         run: |
           set -euo pipefail
           OUTER="downloaded-engine/stable-diffusion-android-arm64-cpu.zip"
@@ -86,6 +86,10 @@ jobs:
           test -s "$APK"
           unzip -l "$APK" | grep -F "assets/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf"
           unzip -l "$APK" | grep -F "assets/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf"
+          unzip -l "$APK" | grep -F "assets/native/arm64-v8a/sd-server"
+          unzip -l "$APK" | grep -F "assets/native/arm64-v8a/libc++_shared.so"
+          unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
+          unzip -l "$APK" | grep -F "assets/frontend/user_studios/Comics_Studio_RTL_PRO_v14.html"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
