@@ -40,6 +40,10 @@ public class MainActivity extends Activity {
             startLocalDiffusionEngine();
             File frontend = new File(getFilesDir(), "frontend");
             copyAssetTree("frontend", frontend);
+            // The guide endpoint resolves files from the app's root directory.
+            // Package and copy guides there so local Android links don't return 404.
+            File guides = new File(getFilesDir(), "guides");
+            copyAssetTree("guides", guides);
             File outputs = new File(getFilesDir(), "outputs");
             if (!outputs.exists()) outputs.mkdirs();
             File db = new File(getFilesDir(), "data/unified.db");

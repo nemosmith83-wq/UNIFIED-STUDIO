@@ -53,6 +53,11 @@ tasks.register("stageAndroidFrontend", Copy) {
     into("$projectDir/src/main/assets/frontend")
 }
 
+tasks.register("stageAndroidGuides", Copy) {
+    from(new File(repositoryRoot, "guides"))
+    into("$projectDir/src/main/assets/guides")
+}
+
 tasks.register("stageAndroidPython", Copy) {
     from(new File(repositoryRoot, "backend")) {
         include "*.py"
@@ -61,7 +66,7 @@ tasks.register("stageAndroidPython", Copy) {
 }
 
 tasks.named("preBuild").configure {
-    dependsOn("stageAndroidFrontend", "stageAndroidPython")
+    dependsOn("stageAndroidFrontend", "stageAndroidGuides", "stageAndroidPython")
 }
 
 tasks.matching { it.name == "mergeDebugPythonSources" || it.name == "mergeReleasePythonSources" }.configureEach {
@@ -69,5 +74,5 @@ tasks.matching { it.name == "mergeDebugPythonSources" || it.name == "mergeReleas
 }
 
 tasks.matching { it.name == "mergeDebugAssets" || it.name == "mergeReleaseAssets" }.configureEach {
-    dependsOn("stageAndroidFrontend")
+    dependsOn("stageAndroidFrontend", "stageAndroidGuides")
 }
