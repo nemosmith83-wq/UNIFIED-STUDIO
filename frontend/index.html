@@ -495,5 +495,15 @@ print(math.sqrt(16))</textarea>
 
 <style id="fadel-user-studios-style">#fadel-user-studios-launch{position:fixed;z-index:99999;bottom:18px;right:18px;background:#d9a85e;color:#17120b;border:0;border-radius:14px;padding:12px 16px;font:700 14px system-ui;box-shadow:0 8px 28px #0008;cursor:pointer}</style>
 <button id="fadel-user-studios-launch" type="button" onclick="location.href='/user_studios/index.html'">استوديوهاتي ✦</button>
+
+<style id="fadel-local-sd-style">
+#fadel-local-sd-actions{position:fixed;z-index:99998;left:16px;bottom:16px;display:flex;flex-direction:column;gap:8px}
+#fadel-local-sd-actions button{background:#17242d;color:#f5f7fa;border:1px solid #4a6577;border-radius:12px;padding:11px 14px;font:700 14px system-ui;box-shadow:0 6px 22px #0007;cursor:pointer}
+#fadel-local-sd-actions button:first-child{background:#d9a85e;color:#17120b;border-color:#d9a85e}
+</style>
+<div id="fadel-local-sd-actions">
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.openLocalStableDiffusion()}else{alert('الواجهة المحلية تعمل داخل APK فقط.')}">Stable Diffusion المحلي</button>
+<button type="button" onclick="if(window.AndroidBridge){AndroidBridge.importStableDiffusionModel()}else{alert('استيراد الموديل متاح داخل APK.')}">استيراد موديل SD</button>
+</div>
 </body>
 </html>
