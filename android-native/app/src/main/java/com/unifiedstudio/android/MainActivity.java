@@ -123,7 +123,7 @@ public class MainActivity extends Activity {
             // into the read-only nativeLibraryDir, which is executable by app processes.
             File nativeDir = new File(getApplicationInfo().nativeLibraryDir);
             File executable = new File(nativeDir, "libsd-server.so");
-            File runtime = new File(nativeDir, "libc++_shared.so");
+            File runtime = new File(nativeDir, "libsdserver_cxx.so");
             if (!executable.isFile() || !executable.canExecute())
                 throw new IOException("Bundled sd-server is missing or not executable in nativeLibraryDir");
             if (!runtime.isFile())
