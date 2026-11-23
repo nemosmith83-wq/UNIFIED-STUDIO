@@ -1,6 +1,6 @@
 # Rebuild the native engine after authentication and frontend fixes.
 name: Build Stable Diffusion Android ARM64 Engine
-# Rebuild the pinned ARM64 engine for the latest Android application revision, then package it with uploaded user studios.
+# Builds the ARM64 CPU server with its own web UI embedded, then packages it into the Android APK.
 
 on:
   push:
@@ -34,13 +34,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build
 
+      - name: Set up Node.js and pnpm for embedded Stable Diffusion Web UI
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.1 --activate
+          pnpm --version
+
       - name: Checkout pinned stable-diffusion.cpp source
         run: |
           git clone https://github.com/leejet/stable-diffusion.cpp.git engine
           git -C engine checkout fc350be2ceeeb859bcc201ac435591ed7d46821d
           git -C engine submodule update --init --recursive
 
-      - name: Configure Android ARM64 CPU engine
+      - name: Configure Android ARM64 CPU engine with embedded Web UI
         run: |
           NDK="$ANDROID_HOME/ndk/27.2.12479018"
           cmake -S engine -B engine/build-android -G Ninja \
@@ -53,10 +64,14 @@ jobs:
             -DSD_BUILD_EXAMPLES=ON \
             -DSD_WEBP=OFF \
             -DSD_WEBM=OFF \
-            -DSD_SERVER_BUILD_FRONTEND=OFF
+            -DSD_SERVER_BUILD_FRONTEND=ON
 
-      - name: Compile native server
-        run: cmake --build engine/build-android --target sd-server --parallel 2
+      - name: Compile native server and embedded frontend
+        run: |
+          set -euo pipefail
+          cmake --build engine/build-android --target sd-server --parallel 2
+          test -s engine/examples/server/frontend/dist/gen_index_html.h
+          grep -Fq "Load models" engine/examples/server/frontend/dist/gen_index_html.h
 
       - name: Verify ARM64 executable and package runtime
         run: |
