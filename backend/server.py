@@ -797,12 +797,8 @@ def local_stable_diffusion_status():
 
 
 @app.post("/api/local-sd/generate")
-def generate_local_stable_diffusion(req: LocalStableDiffusionRequest, request: Request):
-    """Generate through the bundled ARM64 stable-diffusion.cpp server."""
-    user, error_response = _require_user(request)
-    if error_response:
-        return error_response
-
+def generate_local_stable_diffusion(req: LocalStableDiffusionRequest):
+    """Generate through the bundled ARM64 stable-diffusion.cpp server on this device."""
     base_url = "http://127.0.0.1:8766"
     try:
         model_status_response = requests.get(
