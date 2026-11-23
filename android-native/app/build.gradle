@@ -24,12 +24,6 @@ android {
         debug { minifyEnabled false }
     }
 
-    packaging {
-        jniLibs {
-            pickFirsts += ["**/libc++_shared.so"]
-        }
-    }
-
 }
 
 chaquopy {
