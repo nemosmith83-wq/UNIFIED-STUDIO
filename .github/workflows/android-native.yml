@@ -1,16 +1,9 @@
 name: Build native Unified Studio Android APK
 
 on:
-  push:
-    paths:
-      - "android-native/**"
-      - "backend/**"
-      - "frontend/**"
-      - ".github/workflows/android-native.yml"
   workflow_run:
     workflows: ["Build Stable Diffusion Android ARM64 Engine"]
     types: [completed]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -28,15 +21,15 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref }}
 
       - name: Download compiled ARM64 engine
-        if: github.event_name == 'workflow_run' || github.event_name == 'push'
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           name: stable-diffusion-android-arm64-cpu
           path: downloaded-engine
-          run-id: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || 45158777100 }}
+          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package native engine into Android assets
+      - name: Package native engine into executable APK native libraries
         if: github.event_name == 'workflow_run' || github.event_name == 'push'
         run: |
           set -euo pipefail
@@ -46,10 +39,12 @@ jobs:
           unzip -q "$OUTER" -d /tmp/sd-engine
           test -x /tmp/sd-engine/native/arm64-v8a/sd-server || chmod +x /tmp/sd-engine/native/arm64-v8a/sd-server
           test -s /tmp/sd-engine/native/arm64-v8a/libc++_shared.so
-          mkdir -p android-native/app/src/main/assets/native/arm64-v8a
-          cp /tmp/sd-engine/native/arm64-v8a/sd-server android-native/app/src/main/assets/native/arm64-v8a/
-          cp /tmp/sd-engine/native/arm64-v8a/libc++_shared.so android-native/app/src/main/assets/native/arm64-v8a/
-          file android-native/app/src/main/assets/native/arm64-v8a/sd-server
+          mkdir -p android-native/app/src/main/jniLibs/arm64-v8a
+          cp /tmp/sd-engine/native/arm64-v8a/sd-server android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
+          cp /tmp/sd-engine/native/arm64-v8a/libsdserver_cxx.so android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
+          chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
+          chmod 755 android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
+          file android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -86,8 +81,8 @@ jobs:
           test -s "$APK"
           unzip -l "$APK" | grep -F "assets/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf"
           unzip -l "$APK" | grep -F "assets/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf"
-          unzip -l "$APK" | grep -F "assets/native/arm64-v8a/sd-server"
-          unzip -l "$APK" | grep -F "assets/native/arm64-v8a/libc++_shared.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libsd-server.so"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libsdserver_cxx.so"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/Comics_Studio_RTL_PRO_v14.html"
 
