@@ -40,14 +40,19 @@ jobs:
           unzip -q "$OUTER" -d /tmp/sd-engine
           NATIVE="/tmp/sd-engine/native/arm64-v8a"
           BIN="$NATIVE/sd-server"
-          RUNTIME="$NATIVE/libc++_shared.so"
           test -s "$BIN"
           test -x "$BIN"
-          test -s "$RUNTIME"
 
-          mv "$RUNTIME" "$NATIVE/libsdserver_cxx.so"
+          # The engine artifact may already contain the renamed runtime, or may
+          # contain the original NDK runtime. Normalize both cases safely.
+          if test -s "$NATIVE/libc++_shared.so"; then
+            mv "$NATIVE/libc++_shared.so" "$NATIVE/libsdserver_cxx.so"
+          fi
+          test -s "$NATIVE/libsdserver_cxx.so"
           patchelf --set-soname libsdserver_cxx.so "$NATIVE/libsdserver_cxx.so"
-          patchelf --replace-needed libc++_shared.so libsdserver_cxx.so "$BIN"
+          if readelf -d "$BIN" | grep -Fq "libc++_shared.so"; then
+            patchelf --replace-needed libc++_shared.so libsdserver_cxx.so "$BIN"
+          fi
 
           readelf -h "$BIN" | grep -F "AArch64"
           readelf -d "$BIN" | grep -F "libsdserver_cxx.so"
@@ -96,7 +101,7 @@ jobs:
           set -euo pipefail
           APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
-          apksigner verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsd-server.so"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsdserver_cxx.so"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
