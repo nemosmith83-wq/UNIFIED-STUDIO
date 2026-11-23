@@ -14,6 +14,7 @@ import asyncio
 from pathlib import Path
 from typing import Optional, Dict, List, Any
 from PIL import Image
+import requests
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, Body, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -108,6 +109,16 @@ class ImageRequest(BaseModel):
     cfg_scale: float = Field(default=7.0, ge=0.0, le=30.0)
     nsfw: bool = False
     session_id: Optional[str] = Field(default=None, max_length=200)
+
+
+class LocalStableDiffusionRequest(BaseModel):
+    prompt: str = Field(min_length=1, max_length=12000)
+    negative_prompt: str = Field(default="", max_length=8000)
+    width: int = Field(default=512, ge=64, le=2048)
+    height: int = Field(default=512, ge=64, le=2048)
+    steps: int = Field(default=20, ge=1, le=60)
+    cfg_scale: float = Field(default=7.0, ge=0.0, le=30.0)
+    seed: int = Field(default=-1, ge=-1, le=2147483647)
 
 
 class ComicRequest(BaseModel):
@@ -762,6 +773,125 @@ def creative_production(req: CreativeProductionRequest, request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 # Image Generation API (Comic Forge)
 # ─────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/local-sd/status")
+def local_stable_diffusion_status():
+    """Report local sd-server availability and whether a model is loaded."""
+    try:
+        response = requests.get(
+            "http://127.0.0.1:8766/sdcpp/v1/models/status", timeout=3
+        )
+        if not response.ok:
+            return {"available": False, "state": "unavailable",
+                    "error": f"Local Stable Diffusion status HTTP {response.status_code}"}
+        status = response.json()
+        return {
+            "available": True,
+            "state": status.get("state", "unknown"),
+            "recipe": status.get("recipe"),
+            "error": status.get("error"),
+        }
+    except Exception as exc:
+        return {"available": False, "state": "unavailable",
+                "error": str(exc)[:200]}
+
+
+@app.post("/api/local-sd/generate")
+def generate_local_stable_diffusion(req: LocalStableDiffusionRequest, request: Request):
+    """Generate through the bundled ARM64 stable-diffusion.cpp server."""
+    user, error_response = _require_user(request)
+    if error_response:
+        return error_response
+
+    base_url = "http://127.0.0.1:8766"
+    try:
+        model_status_response = requests.get(
+            f"{base_url}/sdcpp/v1/models/status", timeout=5
+        )
+        if not model_status_response.ok:
+            return {"success": False, "error":
+                    "محرك Stable Diffusion المحلي غير جاهز. افتح الواجهة المحلية أولاً."}
+        model_status = model_status_response.json()
+        if model_status.get("state") != "ready":
+            state = model_status.get("state", "empty")
+            return {"success": False, "error":
+                    f"لا يوجد موديل محمّل (الحالة: {state}). افتح واجهة Stable Diffusion، استورد موديلًا ثم اضغط Load models."}
+
+        payload = {
+            "prompt": req.prompt,
+            "negative_prompt": req.negative_prompt,
+            "width": req.width,
+            "height": req.height,
+            "seed": req.seed,
+            "batch_count": 1,
+            "sample_params": {
+                "scheduler": "discrete",
+                "sample_method": "euler_a",
+                "sample_steps": req.steps,
+                "eta": 1.0,
+                "guidance": {
+                    "txt_cfg": req.cfg_scale,
+                    "img_cfg": req.cfg_scale,
+                    "distilled_guidance": 3.5,
+                    "slg": {
+                        "layers": [7, 8, 9],
+                        "layer_start": 0.01,
+                        "layer_end": 0.2,
+                        "scale": 0.0,
+                    },
+                },
+            },
+            "preview": "none",
+            "output_format": "png",
+            "output_compression": 100,
+        }
+        submitted = requests.post(
+            f"{base_url}/sdcpp/v1/img_gen", json=payload, timeout=30
+        )
+        if submitted.status_code != 202:
+            detail = submitted.text[:250]
+            return {"success": False, "error":
+                    f"فشل إرسال مهمة Stable Diffusion ({submitted.status_code}): {detail}"}
+        job_id = submitted.json().get("id")
+        if not job_id:
+            return {"success": False, "error": "محرك Stable Diffusion لم يرجع رقم المهمة."}
+
+        for _ in range(900):
+            time.sleep(1)
+            job_response = requests.get(
+                f"{base_url}/sdcpp/v1/jobs/{job_id}", timeout=15
+            )
+            if not job_response.ok:
+                continue
+            job = job_response.json()
+            state = job.get("status")
+            if state == "completed":
+                images = (job.get("result") or {}).get("images") or []
+                if not images or not images[0].get("b64_json"):
+                    return {"success": False, "error":
+                            "انتهى التوليد لكن المحرك لم يرجع صورة."}
+                return {
+                    "success": True,
+                    "image": "data:image/png;base64," + images[0]["b64_json"],
+                    "seed": req.seed,
+                    "engine": "stable-diffusion.cpp-arm64",
+                }
+            if state in {"failed", "cancelled"}:
+                error = job.get("error")
+                if isinstance(error, dict):
+                    error = error.get("message") or error.get("code")
+                return {"success": False, "error":
+                        f"فشل التوليد المحلي: {error or state}"}
+
+        return {"success": False, "error":
+                "انتهت مهلة التوليد المحلي (15 دقيقة). جرّب دقة أو خطوات أقل."}
+    except requests.Timeout:
+        return {"success": False, "error":
+                "انتهت مهلة الاتصال بمحرك Stable Diffusion المحلي."}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)[:300]}
+
+
 
 @app.post("/api/generate-image")
 def generate_image(req: ImageRequest, request: Request):
