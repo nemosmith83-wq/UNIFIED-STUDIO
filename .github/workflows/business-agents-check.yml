@@ -1,0 +1,31 @@
+name: Business agents checks
+on:
+  push:
+    paths:
+      - "business_agents/**"
+      - ".github/workflows/business-agents-check.yml"
+  pull_request:
+    paths:
+      - "business_agents/**"
+      - ".github/workflows/business-agents-check.yml"
+  workflow_dispatch:
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install app dependencies and test runner
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r business_agents/content_studio/requirements.txt
+          pip install -r business_agents/it_support_agent/requirements.txt
+          pip install pytest
+      - name: Compile Python
+        run: python -m py_compile business_agents/content_studio/app.py business_agents/content_studio/test_app.py business_agents/it_support_agent/app.py business_agents/it_support_agent/test_app.py
+      - name: Run smoke tests
+        run: |
+          cd business_agents/content_studio && pytest -q
+          cd ../it_support_agent && pytest -q
