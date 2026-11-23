@@ -1,8 +1,19 @@
 # Business Agents
 
-Two independent, deployable business tools are stored here:
+Two independent, deployable business tools:
 
-- `content_studio/` — AI Writing Studio and Content Agent combined into one editorial workflow.
-- `it_support_agent/` — IT helpdesk intake, triage, assets and knowledge base.
+- [Content Studio](content_studio/) combines AI Writing Studio and Content Agent into one editorial workflow.
+- [IT Support Agent](it_support_agent/) handles helpdesk tickets, triage, assets, fixes and known issues.
 
-Each folder has its own Flask application, dependencies, Dockerfile and environment example. Apps use SQLite for local persistence and APScheduler for scheduled jobs. Configure AI provider keys as runtime secrets; never commit them.
+Both are Flask applications with SQLite persistence, Dockerfiles, environment examples, and scheduled background jobs. AI provider keys are runtime secrets and must never be committed.
+
+## Run both together with Docker Compose
+
+From this folder, set `OPENAI_API_KEY` in your shell or in an untracked `.env` file, then run:
+
+`docker compose up --build -d`
+
+Content Studio: http://localhost:8081
+IT Support Agent: http://localhost:8082
+
+Both databases are stored in named Docker volumes. Schedules use the container/server timezone. Content Studio creates a weekly plan Monday at 09:00 and a daily queue log at 17:30. IT Support creates an unresolved/aging report daily at 17:00.
