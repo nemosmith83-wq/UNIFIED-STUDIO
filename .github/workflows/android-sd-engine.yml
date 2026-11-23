@@ -8,6 +8,10 @@ on:
       - ".github/workflows/android-sd-engine.yml"
       - "android-native/app/src/main/java/com/unifiedstudio/android/MainActivity.java"
       - ".github/workflows/android-native.yml"
+      - "backend/**"
+      - "frontend/**"
+      - "android-native/app/build.gradle"
+      - "android-native/app/src/main/AndroidManifest.xml"
   workflow_dispatch:
 
 permissions:
