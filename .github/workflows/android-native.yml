@@ -30,7 +30,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package native engine into executable APK native libraries
-        if: github.event_name == 'workflow_run' || github.event_name == 'push'
+        if: github.event_name == 'workflow_run'
         run: |
           set -euo pipefail
           OUTER="downloaded-engine/stable-diffusion-android-arm64-cpu.zip"
@@ -38,7 +38,7 @@ jobs:
           mkdir -p /tmp/sd-engine
           unzip -q "$OUTER" -d /tmp/sd-engine
           test -x /tmp/sd-engine/native/arm64-v8a/sd-server || chmod +x /tmp/sd-engine/native/arm64-v8a/sd-server
-          test -s /tmp/sd-engine/native/arm64-v8a/libc++_shared.so
+          test -s /tmp/sd-engine/native/arm64-v8a/libsdserver_cxx.so
           mkdir -p android-native/app/src/main/jniLibs/arm64-v8a
           cp /tmp/sd-engine/native/arm64-v8a/sd-server android-native/app/src/main/jniLibs/arm64-v8a/libsd-server.so
           cp /tmp/sd-engine/native/arm64-v8a/libsdserver_cxx.so android-native/app/src/main/jniLibs/arm64-v8a/libsdserver_cxx.so
