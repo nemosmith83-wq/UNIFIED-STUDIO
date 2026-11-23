@@ -1,0 +1,25 @@
+name: Auth Username Validation Tests
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/auth.py"
+      - "tests/test_auth_username_validation.py"
+      - ".github/workflows/auth-username-tests.yml"
+  pull_request:
+    paths:
+      - "backend/auth.py"
+      - "tests/test_auth_username_validation.py"
+      - ".github/workflows/auth-username-tests.yml"
+
+jobs:
+  auth-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run auth username validation tests
+        run: python -m unittest tests.test_auth_username_validation -v
