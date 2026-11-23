@@ -312,6 +312,16 @@ Optimizations applied:
 
 ---
 
+## 🎬 Creative Production Workbench
+
+Open the authenticated production workbench from the sidebar or directly at `/production.html`.
+
+It includes eight production tracks: Content, Image, Video, Audio, Comic, Poster/Key Visual, Environment, and Talent. The API creates a structured production package, checks required fields and prompt counts, and can optionally generate up to four visual assets through the existing image engines. Incomplete packages or failed assets are returned as `needs-review`, not falsely marked complete.
+
+API:
+- `GET /api/creative/workflows` — studio definitions (authenticated)
+- `POST /api/creative/production` — create package and optional visual assets (authenticated)
+
 ## 📞 SUPPORT
 
 ### Getting Help
