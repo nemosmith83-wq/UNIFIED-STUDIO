@@ -118,15 +118,16 @@ public class MainActivity extends Activity {
 
     private void startLocalDiffusionEngine() {
         try {
-            File nativeDir = new File(getFilesDir(), "native/arm64-v8a");
-            if (!nativeDir.exists() && !nativeDir.mkdirs())
-                throw new IOException("Cannot create native engine directory");
-            File executable = new File(nativeDir, "sd-server");
+            // Android 10+ blocks execve() from writable app-data files.
+            // Package sd-server as libsd-server.so so PackageManager extracts it
+            // into the read-only nativeLibraryDir, which is executable by app processes.
+            File nativeDir = new File(getApplicationInfo().nativeLibraryDir);
+            File executable = new File(nativeDir, "libsd-server.so");
             File runtime = new File(nativeDir, "libc++_shared.so");
-            copyAssetFile("native/arm64-v8a/sd-server", executable);
-            copyAssetFile("native/arm64-v8a/libc++_shared.so", runtime);
-            if (!executable.setExecutable(true, true) && !executable.canExecute())
-                throw new IOException("Cannot mark sd-server executable");
+            if (!executable.isFile() || !executable.canExecute())
+                throw new IOException("Bundled sd-server is missing or not executable in nativeLibraryDir");
+            if (!runtime.isFile())
+                throw new IOException("Bundled libc++_shared.so is missing from nativeLibraryDir");
 
             File logFile = new File(getFilesDir(), "sd-server.log");
             ProcessBuilder builder = new ProcessBuilder(
