@@ -102,11 +102,12 @@ jobs:
           path = Path(sys.argv[1])
           text = path.read_text(encoding="utf-8")
           if "http://127.0.0.1:8766" not in text:
-              pattern = r"(allow_origins\\s*=\\s*\\[\\s*)"
-              replacement = r'\\1"http://127.0.0.1:8766", "http://localhost:8766",\\n        '
-              text, count = re.subn(pattern, replacement, text, count=1)
-              if count != 1:
-                  raise SystemExit("Could not add local Stable Diffusion WebView CORS origins")
+              start = text.find("allow_origins")
+              bracket = text.find("[", start)
+              if start < 0 or bracket < 0:
+                  raise SystemExit("Could not locate backend CORS allow_origins list")
+              additions = '\\n        "http://127.0.0.1:8766", "http://localhost:8766",'
+              text = text[:bracket + 1] + additions + text[bracket + 1:]
               path.write_text(text, encoding="utf-8")
           PY
           grep -q "localSdApiUrl('/api/local-sd/status')" "$SD_PAGE"
