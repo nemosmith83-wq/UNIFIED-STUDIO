@@ -118,7 +118,7 @@ jobs:
           # Ensure every committed studio file is packaged, and every launcher
           # link points to a real local file (no silent missing tools).
           python - <<'PY'
-          import os, re, zipfile
+          import os, zipfile\n          from html.parser import HTMLParser
           root = "frontend/user_studios"
           apk = "android-native/app/build/outputs/apk/debug/app-debug.apk"
           with zipfile.ZipFile(apk) as z:
@@ -133,7 +133,16 @@ jobs:
                   raise SystemExit("APK missing committed studio files: " + ", ".join(missing))
               with open(os.path.join(root, "index.html"), encoding="utf-8") as f:
                   html = f.read()
-              links = re.findall(r'<a\\b[^>]*?href=["\\']([^"\\']+)["\\']', html, re.I)
+              class LinkParser(HTMLParser):
+                  def __init__(self):
+                      super().__init__()
+                      self.links = []
+                  def handle_starttag(self, tag, attrs):
+                      if tag.lower() == "a":
+                          self.links.extend(value for key, value in attrs if key.lower() == "href" and value)
+              parser = LinkParser()
+              parser.feed(html)
+              links = parser.links
               broken = []
               for href in links:
                   if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:")):
