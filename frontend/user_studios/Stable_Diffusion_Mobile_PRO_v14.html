@@ -178,11 +178,15 @@ function importLocalSdModel() {
   }
 }
 
+const LOCAL_SD_API_BASE = (location.origin === 'http://127.0.0.1:8766' || location.origin === 'http://localhost:8766')
+  ? 'http://127.0.0.1:8765' : '';
+function localSdApiUrl(path) { return LOCAL_SD_API_BASE + path; }
+
 async function refreshLocalSdStatus() {
   const status = $('status');
   if (!status) return;
   try {
-    const response = await fetch('/api/local-sd/status', { cache: 'no-store' });
+    const response = await fetch(localSdApiUrl('/api/local-sd/status'), { cache: 'no-store' });
     const data = await response.json();
     if (!data.available) {
       status.className = 'muted';
@@ -450,7 +454,7 @@ async function generateSingleVariation(promptText, model, w, h, seed, idx, total
     const scale = Math.min(1, 768 / Math.max(w, h));
     const localW = Math.max(64, Math.round((w * scale) / 8) * 8);
     const localH = Math.max(64, Math.round((h * scale) / 8) * 8);
-    const response = await fetch('/api/local-sd/generate', {
+    const response = await fetch(localSdApiUrl('/api/local-sd/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
