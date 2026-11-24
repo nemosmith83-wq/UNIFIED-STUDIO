@@ -17,6 +17,10 @@ Date: 2026-11-24
 - DIRECTOR/100: SHA-256 `5a836db52495ddbf70636f6e48166e96df37d7a676a4db7a79d505c529563c49`
 - All 19 embedded studio entries were decoded; all four external studio routes resolve to packaged local HTML assets.
 
+## Final delivered APK
+- SHA-256: `00b4de5e1f5f3a0a62dc1d1cc145e550db1506791a3ae9a80ec87834248f877f`
+- Delivered filename: `The_New_Era_v16_FadeL_Complete.apk`
+
 ## Checks performed
 - APK ZIP integrity: pass.
 - JAR/APK v1 signature verification: pass (self-signed certificate).
