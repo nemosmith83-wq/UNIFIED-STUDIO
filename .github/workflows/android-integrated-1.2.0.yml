@@ -129,12 +129,7 @@ jobs:
           server = root / "server.py"
           text = server.read_text(encoding="utf-8")
           old = '        return {"available": True, "setup_key": os.environ.get("UVS_ADMIN_SETUP_KEY", "")}'
-          new = '''        setup_key = os.environ.get("UVS_ADMIN_SETUP_KEY", "")
-          if not setup_key:
-              raise HTTPException(status_code=503, detail="Local admin setup key unavailable.")
-          # Keep the bootstrap endpoint and the mounted API on the exact same key.
-          _admin_api.SETUP = setup_key
-          return {"available": True, "setup_key": setup_key}'''
+          new = "        setup_key = os.environ.get(\\"UVS_ADMIN_SETUP_KEY\\", \\"\\")\\n        if not setup_key:\\n            raise HTTPException(status_code=503, detail=\\"Local admin setup key unavailable.\\")\\n        # Keep the bootstrap endpoint and the mounted API on the exact same key.\\n        _admin_api.SETUP = setup_key\\n        return {\\"available\\": True, \\"setup_key\\": setup_key}"
           if old not in text:
               raise SystemExit("Local admin setup-key endpoint source not found")
           server.write_text(text.replace(old, new, 1), encoding="utf-8")
