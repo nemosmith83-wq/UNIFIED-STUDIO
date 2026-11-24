@@ -295,6 +295,26 @@ jobs:
             test -n "$TOTAL_MS"
             test "$TOTAL_MS" -le 120000
             adb shell pidof com.unifiedstudio.localsd
+            adb forward tcp:18765 tcp:8765
+            for attempt in $(seq 1 60); do
+              if curl --fail --silent --show-error http://127.0.0.1:18765/api/status -o /tmp/unified-studio-api-status.json; then
+                break
+              fi
+              sleep 1
+            done
+            test -s /tmp/unified-studio-api-status.json
+            cat /tmp/unified-studio-api-status.json
+            adb forward tcp:18766 tcp:8766
+            SD_CODE="000"
+            for attempt in $(seq 1 60); do
+              SD_CODE="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 3 http://127.0.0.1:18766/ || true)"
+              if [[ "$SD_CODE" =~ ^[1-5][0-9][0-9]$ ]]; then
+                break
+              fi
+              sleep 1
+            done
+            test "$SD_CODE" != "000"
+            echo "Local Stable Diffusion HTTP port responded with HTTP $SD_CODE."
             adb logcat -d -t 2000 > /tmp/unified-studio-logcat.txt
             if grep -E "FATAL EXCEPTION|Process: com.unifiedstudio.localsd, PID" /tmp/unified-studio-logcat.txt; then
               echo "Android runtime smoke test detected a fatal app crash."
