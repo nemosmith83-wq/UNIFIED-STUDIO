@@ -236,7 +236,7 @@ jobs:
           sha256sum "$APK"
           file "$APK"
 
-      - name: ARM64 Android runtime and startup performance smoke test
+      - name: Android runtime and startup performance smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -259,7 +259,7 @@ jobs:
               echo "Android runtime smoke test detected a fatal app crash."
               exit 1
             fi
-            echo "ARM64 runtime smoke test passed; Activity TotalTime=${TOTAL_MS}ms."
+            echo "Android emulator runtime smoke test passed; Activity TotalTime=${TOTAL_MS}ms."
 
       - name: Upload verified integrated APK
         uses: actions/upload-artifact@v4
