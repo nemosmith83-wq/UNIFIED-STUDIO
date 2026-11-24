@@ -1,4 +1,4 @@
-name: Temporary actionlint check for uploaded-assets branch
+name: Temporary actionlint check for uploaded-assets branch retry
 
 on:
   push:
