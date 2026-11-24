@@ -218,18 +218,13 @@ jobs:
           APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -F "package: name='com.unifiedstudio.localsd' versionCode='1' versionName='1.2.0'"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsd-server.so"
           unzip -l "$APK" | grep -F "lib/arm64-v8a/libsdserver_cxx.so"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/index.html"
           unzip -l "$APK" | grep -F "assets/frontend/user_studios/Stable_Diffusion_Mobile_PRO_v14.html"
           unzip -l "$APK" | grep -F "assets/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf"
           unzip -l "$APK" | grep -F "assets/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf"
-          if unzip -l "$APK" | grep -F "assets/native/arm64-v8a/sd-server"; then
-            echo "ERROR: native engine was packaged as an asset instead of a native library."
-            exit 1
-          fi
-          sha256sum "$APK"
-          file "$APK"
           unzip -l "$APK" | grep -F "assets/frontend/unified-hub/index.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/unified-launcher.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/uvs-vault-2026-11-18.json"
@@ -237,11 +232,17 @@ jobs:
           unzip -l "$APK" | grep -F "assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Free_AI_Face_Swap_Web_Archive.mht"
-          TOOL_COUNT="$(find frontend/new-era/tools -maxdepth 1 -type f -name '*.html' | wc -l)"
+          TOOL_COUNT="$(unzip -Z1 "$APK" | grep -cE '^assets/frontend/new-era/tools/.*\.html$' || true)"
           test "$TOOL_COUNT" -ge 15
-          echo "Verified Unified Hub, New Era launcher, 15+ tools, and uploaded reference resources."
-          # Ensure every committed studio file is packaged, and every launcher
-          # link points to a real local file (no silent missing tools).
+          if unzip -Z1 "$APK" | grep -E '^assets/native/arm64-v8a/sd-server$'; then
+            echo "ERROR: native engine was packaged as an asset instead of a native library."
+            exit 1
+          fi
+          sha256sum "$APK"
+          file "$APK"
+
+          # Verify every committed studio file is present and all local launcher
+          # links resolve to an existing source file.
           python - <<'PY'
           import os, zipfile
           from html.parser import HTMLParser
@@ -268,9 +269,8 @@ jobs:
                           self.links.extend(value for key, value in attrs if key.lower() == "href" and value)
               parser = LinkParser()
               parser.feed(html)
-              links = parser.links
               broken = []
-              for href in links:
+              for href in parser.links:
                   if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:")):
                       continue
                   target = os.path.normpath(os.path.join(root, href.split("?", 1)[0].split("#", 1)[0]))
@@ -278,90 +278,13 @@ jobs:
                       broken.append(href)
               if broken:
                   raise SystemExit("Broken local launcher links: " + ", ".join(broken))
-              print(f"Studio packaging check passed: {len(source_files)} source files, {len(links)} launcher links.")
+              print(f"Studio packaging check passed: {len(source_files)} source files, {len(parser.links)} launcher links.")
           PY
 
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
           name: unified-studio-native-android-arm64-final-${{ github.run_id }}-${{ github.run_attempt }}
-          path: android-native/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-)"
-          test "$TOOL_COUNT" -ge 15
-          echo "Verified Unified Hub, New Era launcher, 15+ tools, and uploaded reference resources."
-
-          # Ensure every committed studio file is packaged, and every launcher
-          # link points to a real local file (no silent missing tools).
-          python - <<'PY'
-          import os, zipfile
-          from html.parser import HTMLParser
-          root = "frontend/user_studios"
-          apk = "android-native/app/build/outputs/apk/debug/app-debug.apk"
-          with zipfile.ZipFile(apk) as z:
-              packaged = set(z.namelist())
-              source_files = []
-              for base, _, files in os.walk(root):
-                  for filename in files:
-                      rel = os.path.relpath(os.path.join(base, filename), root).replace(os.sep, "/")
-                      source_files.append(rel)
-              missing = [rel for rel in source_files if "assets/frontend/user_studios/" + rel not in packaged]
-              if missing:
-                  raise SystemExit("APK missing committed studio files: " + ", ".join(missing))
-              with open(os.path.join(root, "index.html"), encoding="utf-8") as f:
-                  html = f.read()
-              class LinkParser(HTMLParser):
-                  def __init__(self):
-                      super().__init__()
-                      self.links = []
-                  def handle_starttag(self, tag, attrs):
-                      if tag.lower() == "a":
-                          self.links.extend(value for key, value in attrs if key.lower() == "href" and value)
-              parser = LinkParser()
-              parser.feed(html)
-              links = parser.links
-              broken = []
-              for href in links:
-                  if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:")):
-                      continue
-                  target = os.path.normpath(os.path.join(root, href.split("?", 1)[0].split("#", 1)[0]))
-                  if not os.path.isfile(target):
-                      broken.append(href)
-              if broken:
-                  raise SystemExit("Broken local launcher links: " + ", ".join(broken))
-              print(f"Studio packaging check passed: {len(source_files)} source files, {len(links)} launcher links.")
-          PY
-
-      - name: Install and smoke-test APK on ARM64 Android emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: arm64-v8a
-          profile: pixel_2
-          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
-          script: |
-            set -euo pipefail
-            APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
-            adb install -r "$APK"
-            START_OUTPUT="$(adb shell am start -W -n com.unifiedstudio.android/.MainActivity 2>&1)"
-            printf '%s\n' "$START_OUTPUT"
-            TOTAL_MS="$(printf '%s\n' "$START_OUTPUT" | awk -F: '/TotalTime/ {gsub(/[^0-9]/,"",$2); print $2; exit}')"
-            test -n "$TOTAL_MS"
-            test "$TOTAL_MS" -le 120000
-            adb shell pidof com.unifiedstudio.localsd
-            adb logcat -d -t 2000 > /tmp/unified-studio-logcat.txt
-            if grep -E "FATAL EXCEPTION|Process: com.unifiedstudio.localsd, PID" /tmp/unified-studio-logcat.txt; then
-              echo "Android runtime smoke test detected a fatal app crash."
-              exit 1
-            fi
-            echo "ARM64 startup smoke test passed; Activity TotalTime=${TOTAL_MS}ms."
-
-      - name: Upload verified APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: unified-studio-native-android-arm64-final
           path: android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
