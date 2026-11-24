@@ -80,7 +80,7 @@
     maxChars = maxChars || 260;
     text = String(text || '').replace(/\r\n/g, '\n').trim();
     if (!text) return [];
-    const rawSentences = text.split(/(?<=[.!?؟।\n])+/).map(s => s.trim()).filter(Boolean);
+    const rawSentences = text.split(/(?<=[.!?؟।\n])/).map(s => s.trim()).filter(Boolean);
     const chunks = [];
     let current = '';
     rawSentences.forEach(sentence => {
