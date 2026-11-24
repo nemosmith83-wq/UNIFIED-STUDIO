@@ -87,6 +87,20 @@ jobs:
           unzip -q new-era-tools.zip -d "$NEWERA"
           cp frontend/new-era/unified-launcher.html "$NEWERA/unified-launcher.html"
 
+          # Copy the user's full uploaded-studio collection into the APK.
+          USER_STUDIOS="$FRONTEND/user_studios"
+          mkdir -p "$USER_STUDIOS"
+          cp -a "$GITHUB_WORKSPACE/frontend/user_studios/." "$USER_STUDIOS/"
+          test -s "$USER_STUDIOS/uploaded-assets.html"
+          test -s "$USER_STUDIOS/uploaded-assets-manifest.json"
+          python - "$USER_STUDIOS/uploaded-assets-manifest.json" <<'PY'
+          import json, sys
+          m=json.load(open(sys.argv[1],encoding="utf-8"))
+          if m.get("sourceUploadCount") != 20 or len(m.get("files",[])) != 20:
+              raise SystemExit("Uploaded source manifest must account for all 20 files")
+          print("Manifest accounts for all 20 uploaded source files.")
+          PY
+
           # Replace the packaged Stable Diffusion studio page with the corrected
           # API-origin version. The SD web server runs on :8766, while the app
           # API runs on :8765.
@@ -117,25 +131,101 @@ jobs:
           test -s "$NEWERA/tools/Comics_Studio_RTL_PRO_v14.html"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
-          # Remove optional shared-core script references from standalone tool pages.
-          # The bridge is not part of the supplied tools pack; Comics Studio already has a localStorage fallback.
+          # Remove optional shared-core script references absent from the package.
+          # These pages retain their standalone localStorage fallbacks.
           python - <<'PY'
           import re
           from pathlib import Path
-          tools = Path("source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend/new-era/tools")
+          base = Path("source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend")
+          roots = [base / "new-era/tools", base / "user_studios"]
           pattern = re.compile(r"""<script\b[^>]*\bsrc=["'][^"']*uvs-core\.js[^"']*["'][^>]*>\s*</script>""", re.I)
-          removed = 0
-          for page in tools.rglob("*.html"):
+          counts = {}
+          for root in roots:
+              removed = 0
+              for page in root.rglob("*.html"):
+                  text = page.read_text(encoding="utf-8")
+                  updated, count = pattern.subn("", text)
+                  if count:
+                      page.write_text(updated, encoding="utf-8")
+                      removed += count
+              counts[root.name] = removed
+          if counts.get("tools") != 8:
+              raise SystemExit(f"Expected 8 optional uvs-core refs in New Era tools, removed {counts.get('tools')}")
+          print("Removed optional uvs-core references:", counts)
+
+          # Correct the invalid repeated lookbehind quantifier in XTTS.
+          bad = r"(?<=[.!?؟।\n])+"
+          good = r"(?<=[.!?؟।\n])"
+          xtts_pages = [
+              base / "new-era/tools/XTTS_v2_Bilingual_Voice_Studio.html",
+              base / "user_studios/uploaded/XTTS_v2_Bilingual_Voice_Studio.html",
+          ]
+          for page in xtts_pages:
+              if not page.exists():
+                  continue
               text = page.read_text(encoding="utf-8")
-              updated, count = pattern.subn("", text)
-              if count:
-                  page.write_text(updated, encoding="utf-8")
-                  removed += count
-          if removed != 8:
-              raise SystemExit(f"Expected to remove 8 missing optional uvs-core.js references, removed {removed}")
-          print("Removed 8 unresolved optional shared-core references; standalone fallback remains enabled.")
+              if bad in text:
+                  text = text.replace(bad, good)
+                  page.write_text(text, encoding="utf-8")
+              if bad in text:
+                  raise SystemExit(f"Invalid XTTS regex remains in {page}")
+          print("XTTS regex fixed.")
           PY
 
+          # Parse all uploaded inline scripts and verify local file references.
+          python - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re, subprocess
+          root = Path("source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend/user_studios/uploaded")
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.scripts=[]; self.current=None; self.refs=[]
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs)
+                  if tag=="script":
+                      self.current=[a.get("type",""),""]
+                  for k in ("src","href"):
+                      v=a.get(k)
+                      if v: self.refs.append(v)
+              def handle_data(self, data):
+                  if self.current is not None: self.current[1]+=data
+              def handle_endtag(self, tag):
+                  if tag=="script" and self.current is not None:
+                      self.scripts.append(self.current); self.current=None
+          pages=list(root.glob("*.html"))
+          if len(pages)<18:
+              raise SystemExit(f"Expected at least 18 uploaded HTML pages, found {len(pages)}")
+          errors=[]
+          for page in pages:
+              parser=P(); parser.feed(page.read_text(encoding="utf-8"))
+              for ref in parser.refs:
+                  if ref.startswith(("http:","https:","//","data:","blob:","#","javascript:")) or ref.startswith("/"):
+                      continue
+                  target=(page.parent/ref.split("#")[0].split("?")[0]).resolve()
+                  if not target.exists():
+                      errors.append(f"{page.name}: missing {ref}")
+              for i,(typ,code) in enumerate(parser.scripts):
+                  if not code.strip() or typ.lower() in ("importmap","application/ld+json"):
+                      continue
+                  suffix=".mjs" if typ.lower()=="module" else ".js"
+                  temp=Path(f"/tmp/uploaded-{page.stem}-{i}{suffix}")
+                  temp.write_text(code,encoding="utf-8")
+                  check=subprocess.run(["node","--check",str(temp)],capture_output=True,text=True)
+                  if check.returncode:
+                      errors.append(f"{page.name} script {i}: {check.stderr.splitlines()[-1] if check.stderr else 'syntax error'}")
+          if errors:
+              raise SystemExit("\n".join(errors[:50]))
+          print(f"Static HTML/JS checks passed for {len(pages)} uploaded studio pages.")
+          PY
+
+          test -s "$USER_STUDIOS/uploaded/Flux2_Klein_FaceSwap_Studio_v14.html"
+          test -s "$USER_STUDIOS/uploaded/Remake_AI_FaceSwap_v8_Studio.html"
+          test -s "$USER_STUDIOS/uploaded/Stable_Diffusion_Mobile_PRO_v11_Flux_IPAdapter.html"
+          test -s "$USER_STUDIOS/uploaded/comic_factory_full.html"
+          test -s "$USER_STUDIOS/uploaded/uvs-vault-2026-11-18.json"
+          test -s "$USER_STUDIOS/uploaded/The_New_Era_Complete_Colab_APK_Factory.ipynb"
+          echo "Verified uploaded studio files and resource catalog."
           # Add a visible entry in the integrated studio navigation without removing existing tabs.
           python - <<'PY'
           from pathlib import Path
@@ -143,17 +233,19 @@ jobs:
           p = Path(os.environ["GITHUB_WORKSPACE"]) / "source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend/index.html"
           s = p.read_text(encoding="utf-8")
           link = '<a class="nav-btn" href="/new-era/unified-launcher.html">FadeL The New Era + Tools</a>'
-          if link not in s:
-              start = s.find('<nav class="nav-tabs">')
-              if start >= 0:
-                  end = s.find('</nav>', start)
-                  if end >= 0:
-                      s = s[:end] + link + s[end:]
+          library = '<a class="nav-btn" href="/user_studios/uploaded-assets.html">Uploaded Assets Library</a>'
+          for item in (link, library):
+              if item not in s:
+                  start = s.find('<nav class="nav-tabs">')
+                  if start >= 0:
+                      end = s.find('</nav>', start)
+                      if end >= 0:
+                          s = s[:end] + item + s[end:]
+                      else:
+                          raise SystemExit("Navigation closing tag not found")
                   else:
-                      raise SystemExit("Navigation closing tag not found")
-              else:
-                  s = s.replace('</body>', '<a href="/new-era/unified-launcher.html" style="position:fixed;z-index:99999;bottom:16px;right:16px;padding:12px 16px;background:#d9a85e;color:#17120b;border-radius:12px;font-weight:800;text-decoration:none">FadeL The New Era + Tools</a></body>')
-              p.write_text(s, encoding="utf-8")
+                      s = s.replace('</body>', item + '</body>')
+          p.write_text(s, encoding="utf-8")
           PY
           echo "Integrated New Era source and 15 supplementary tools into Android assets."
           du -sh "$NEWERA"
@@ -230,6 +322,32 @@ jobs:
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/Comics_Studio_RTL_PRO_v14.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/resources/promptvault-pages/PromptVault-Pro-page-18.jpg'
+          unzip -l "$APK" | grep -F 'assets/frontend/user_studios/uploaded-assets.html'
+          unzip -l "$APK" | grep -F 'assets/frontend/user_studios/uploaded-assets-manifest.json'
+          UPLOADED_HTML_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/user_studios/uploaded/[^ ]+\.html          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
+          test "$TOOL_COUNT" -ge 15
+          echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
+          sha256sum "$APK"
+          file "$APK"
+
+      - name: Upload verified integrated APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unified-Studio-Android-1.2.0-Integrated-APK
+          path: delivery/Unified-Studio-Android-1.2.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unified-Studio-Android-1.2.0-Build-Logs
+          path: gradle-build.log
+          if-no-files-found: ignore
+          retention-days: 7
+)"
+          test "$UPLOADED_HTML_COUNT" -ge 18
           TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
           test "$TOOL_COUNT" -ge 15
           echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
