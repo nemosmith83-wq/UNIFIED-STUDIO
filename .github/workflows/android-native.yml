@@ -98,6 +98,45 @@ jobs:
           unzip -t new-era-tools.zip
           unzip -q new-era-tools.zip -d "$NEWERA"
           cp /tmp/fadel-unified-launcher.html "$NEWERA/unified-launcher.html"
+          # Remove optional shared-core references absent from the supplied tools pack.
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from urllib.parse import urlsplit
+          tools = Path("frontend/new-era/tools")
+          pattern = re.compile(r"""<script\b[^>]*\bsrc=["'][^"']*uvs-core\.js[^"']*["'][^>]*>\s*</script>""", re.I)
+          removed = 0
+          for page in tools.rglob("*.html"):
+              text = page.read_text(encoding="utf-8")
+              updated, count = pattern.subn("", text)
+              if count:
+                  page.write_text(updated, encoding="utf-8")
+                  removed += count
+          if removed != 8:
+              raise SystemExit(f"Expected 8 optional uvs-core.js references, removed {removed}")
+
+          class LinkParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "a":
+                      self.links.extend(value for key, value in attrs if key.lower() == "href" and value)
+          launcher = Path("frontend/new-era/unified-launcher.html")
+          parser = LinkParser()
+          parser.feed(launcher.read_text(encoding="utf-8"))
+          broken = []
+          for href in parser.links:
+              if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:", "data:")):
+                  continue
+              target = (launcher.parent / urlsplit(href).path).resolve()
+              if not target.is_file():
+                  broken.append(href)
+          if broken:
+              raise SystemExit("Broken New Era launcher links: " + ", ".join(broken))
+          print(f"New Era validation passed: removed {removed} optional references; checked {len(parser.links)} launcher links.")
+          PY
           test -s "$NEWERA/index.html"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
