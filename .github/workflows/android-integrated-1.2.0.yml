@@ -158,6 +158,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip pytest fastapi uvicorn pydantic python-dotenv requests Pillow beautifulsoup4 pypdf python-docx python-multipart httpx
           python -m pytest -q qa/test_android_regressions.py
+          python qa/run_integration_smoke.py
 
       - name: Build integrated Android APK
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
