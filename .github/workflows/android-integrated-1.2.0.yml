@@ -86,6 +86,33 @@ jobs:
           unzip -t new-era-tools.zip
           unzip -q new-era-tools.zip -d "$NEWERA"
           cp frontend/new-era/unified-launcher.html "$NEWERA/unified-launcher.html"
+
+          # Replace the packaged Stable Diffusion studio page with the corrected
+          # API-origin version. The SD web server runs on :8766, while the app
+          # API runs on :8765.
+          SD_PAGE="$PROJECT/app/src/main/assets/frontend/user_studios/Stable_Diffusion_Mobile_PRO_v14.html"
+          mkdir -p "$(dirname "$SD_PAGE")"
+          cp "$GITHUB_WORKSPACE/frontend/user_studios/Stable_Diffusion_Mobile_PRO_v14.html" "$SD_PAGE"
+
+          # Permit the packaged SD UI origin to call the local Unified Studio API.
+          BACKEND="$PROJECT/app/src/main/python/server.py"
+          python - "$BACKEND" <<'PY'
+          from pathlib import Path
+          import re, sys
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+          if "http://127.0.0.1:8766" not in text:
+              pattern = r"(allow_origins\\s*=\\s*\\[\\s*)"
+              replacement = r'\\1"http://127.0.0.1:8766", "http://localhost:8766",\\n        '
+              text, count = re.subn(pattern, replacement, text, count=1)
+              if count != 1:
+                  raise SystemExit("Could not add local Stable Diffusion WebView CORS origins")
+              path.write_text(text, encoding="utf-8")
+          PY
+          grep -q "localSdApiUrl('/api/local-sd/status')" "$SD_PAGE"
+          grep -q "http://127.0.0.1:8766" "$BACKEND"
+          echo "Patched Stable Diffusion UI API origin and local-only CORS."
+
           test -s "$NEWERA/tools/Comics_Studio_RTL_PRO_v14.html"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
