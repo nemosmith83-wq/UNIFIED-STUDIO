@@ -89,6 +89,24 @@ jobs:
           test -s "$NEWERA/tools/Comics_Studio_RTL_PRO_v14.html"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
+          # Remove optional shared-core script references from standalone tool pages.
+          # The bridge is not part of the supplied tools pack; Comics Studio already has a localStorage fallback.
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          tools = Path("source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend/new-era/tools")
+          pattern = re.compile(r"""<script\b[^>]*\bsrc=["'][^"']*uvs-core\.js[^"']*["'][^>]*>\s*</script>""", re.I)
+          removed = 0
+          for page in tools.rglob("*.html"):
+              text = page.read_text(encoding="utf-8")
+              updated, count = pattern.subn("", text)
+              if count:
+                  page.write_text(updated, encoding="utf-8")
+                  removed += count
+          if removed != 8:
+              raise SystemExit(f"Expected to remove 8 missing optional uvs-core.js references, removed {removed}")
+          print("Removed 8 unresolved optional shared-core references; standalone fallback remains enabled.")
+          PY
 
           # Add a visible entry in the integrated studio navigation without removing existing tabs.
           python - <<'PY'
