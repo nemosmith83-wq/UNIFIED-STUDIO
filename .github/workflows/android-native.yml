@@ -155,6 +155,31 @@ jobs:
               print(f"Studio packaging check passed: {len(source_files)} source files, {len(links)} launcher links.")
           PY
 
+      - name: Install and smoke-test APK on ARM64 Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: arm64-v8a
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
+          script: |
+            set -euo pipefail
+            APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
+            adb install -r "$APK"
+            START_OUTPUT="$(adb shell am start -W -n com.unifiedstudio.android/.MainActivity 2>&1)"
+            printf '%s\n' "$START_OUTPUT"
+            TOTAL_MS="$(printf '%s\n' "$START_OUTPUT" | awk -F: '/TotalTime/ {gsub(/[^0-9]/,"",$2); print $2; exit}')"
+            test -n "$TOTAL_MS"
+            test "$TOTAL_MS" -le 120000
+            adb shell pidof com.unifiedstudio.localsd
+            adb logcat -d -t 2000 > /tmp/unified-studio-logcat.txt
+            if grep -E "FATAL EXCEPTION|Process: com.unifiedstudio.localsd, PID" /tmp/unified-studio-logcat.txt; then
+              echo "Android runtime smoke test detected a fatal app crash."
+              exit 1
+            fi
+            echo "ARM64 startup smoke test passed; Activity TotalTime=${TOTAL_MS}ms."
+
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
