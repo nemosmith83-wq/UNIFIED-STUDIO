@@ -63,7 +63,7 @@ jobs:
           test -s "$PROJECT/app/src/main/assets/frontend/characters/index.json"
           test -s "$PROJECT/app/src/main/assets/frontend/characters/REHAM/Originals/مكتب فاخر وبيئة مهنية أنيقة.png"
           grep -q 'BeautifulSoup' "$PROJECT/app/src/main/python/tools.py"
-          ! grep -q 'ddgs==' "$PROJECT/app/build.gradle"
+          if grep -q 'ddgs==' "$PROJECT/app/build.gradle"; then echo 'Unexpected ddgs dependency in Android build' >&2; exit 1; fi
           echo "Verified corrected integrated source, backend, storyboard, character images and Android-compatible web-search fallback."
 
       - name: Merge FadeL The New Era v16 and supplemental tools into the Android app
