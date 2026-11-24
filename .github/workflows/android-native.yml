@@ -138,6 +138,8 @@ jobs:
           print(f"New Era validation passed: removed {removed} optional references; checked {len(parser.links)} launcher links.")
           PY
           test -s "$NEWERA/index.html"
+          test -s "$NEWERA/resources/uvs-vault-2026-11-18.json"
+          test -s "$NEWERA/resources/SKILL.md"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
           test -s "$NEWERA/resources/Free_AI_Face_Swap_Web_Archive.mht"
@@ -230,6 +232,8 @@ jobs:
           file "$APK"
           unzip -l "$APK" | grep -F "assets/frontend/unified-hub/index.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/unified-launcher.html"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/uvs-vault-2026-11-18.json"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/SKILL.md"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Free_AI_Face_Swap_Web_Archive.mht"
