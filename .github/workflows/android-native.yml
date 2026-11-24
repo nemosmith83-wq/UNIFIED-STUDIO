@@ -115,6 +115,37 @@ jobs:
           sha256sum "$APK"
           file "$APK"
 
+          # Ensure every committed studio file is packaged, and every launcher
+          # link points to a real local file (no silent missing tools).
+          python - <<'PY'
+          import os, re, zipfile
+          root = "frontend/user_studios"
+          apk = "android-native/app/build/outputs/apk/debug/app-debug.apk"
+          with zipfile.ZipFile(apk) as z:
+              packaged = set(z.namelist())
+              source_files = []
+              for base, _, files in os.walk(root):
+                  for filename in files:
+                      rel = os.path.relpath(os.path.join(base, filename), root).replace(os.sep, "/")
+                      source_files.append(rel)
+              missing = [rel for rel in source_files if "assets/frontend/user_studios/" + rel not in packaged]
+              if missing:
+                  raise SystemExit("APK missing committed studio files: " + ", ".join(missing))
+              with open(os.path.join(root, "index.html"), encoding="utf-8") as f:
+                  html = f.read()
+              links = re.findall(r'<a\\b[^>]*?href=["\\']([^"\\']+)["\\']', html, re.I)
+              broken = []
+              for href in links:
+                  if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:")):
+                      continue
+                  target = os.path.normpath(os.path.join(root, href.split("?", 1)[0].split("#", 1)[0]))
+                  if not os.path.isfile(target):
+                      broken.append(href)
+              if broken:
+                  raise SystemExit("Broken local launcher links: " + ", ".join(broken))
+              print(f"Studio packaging check passed: {len(source_files)} source files, {len(links)} launcher links.")
+          PY
+
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
