@@ -125,7 +125,6 @@ jobs:
           test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
           echo "Integrated The New Era v16, supplemental tools, and uploaded assets library."
           du -sh "$NEWERA" "$USER_STUDIOS"
-          du -sh "$NEWERA"
       - name: Fix Android first-admin setup key synchronization
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
         run: |
