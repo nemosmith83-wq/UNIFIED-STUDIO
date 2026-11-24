@@ -194,7 +194,9 @@ jobs:
           unzip -l "$APK" | grep -F "assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
           unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Free_AI_Face_Swap_Web_Archive.mht"
-          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html
+          TOOL_COUNT="$(find frontend/new-era/tools -maxdepth 1 -type f -name '*.html' | wc -l)"
+          test "$TOOL_COUNT" -ge 15
+          echo "Verified Unified Hub, New Era launcher, 15+ tools, and uploaded reference resources."
           # Ensure every committed studio file is packaged, and every launcher
           # link points to a real local file (no silent missing tools).
           python - <<'PY'
