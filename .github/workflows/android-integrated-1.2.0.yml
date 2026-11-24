@@ -324,9 +324,11 @@ jobs:
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/resources/promptvault-pages/PromptVault-Pro-page-18.jpg'
           unzip -l "$APK" | grep -F 'assets/frontend/user_studios/uploaded-assets.html'
           unzip -l "$APK" | grep -F 'assets/frontend/user_studios/uploaded-assets-manifest.json'
-          UPLOADED_HTML_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/user_studios/uploaded/[^ ]+\.html          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
+          UPLOADED_HTML_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/user_studios/uploaded/[^ ]+\.html$')"
+          test "$UPLOADED_HTML_COUNT" -ge 18
+          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
           test "$TOOL_COUNT" -ge 15
-          echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
+          echo "Verified The New Era app, uploaded studio library (18+ pages), 15+ tools, and resources."
           sha256sum "$APK"
           file "$APK"
 
