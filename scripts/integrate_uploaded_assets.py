@@ -41,8 +41,9 @@ if removed.get("tools") != 8:
     raise SystemExit(f"Expected 8 optional uvs-core refs in New Era tools, removed {removed.get('tools')}.")
 
 # Fix invalid lookbehind quantifier in both XTTS copies.
-bad = "(?<=[.!?؟।\n])+"
-good = "(?<=[.!?؟।\n])"
+slash = chr(92)
+bad = "(?<=[.!?؟।" + slash + "n])+"
+good = "(?<=[.!?؟।" + slash + "n])"
 for page in [
     frontend / "new-era/tools/XTTS_v2_Bilingual_Voice_Studio.html",
     target_studios / "uploaded/XTTS_v2_Bilingual_Voice_Studio.html",
