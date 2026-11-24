@@ -1,0 +1,22 @@
+name: Validate Android Integration Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/android-integrated-1.2.0.yml"
+      - "scripts/integrate_uploaded_assets.py"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Lint Android integration workflow
+        uses: reviewdog/actionlint@v1
+        with:
+          actionlint_flags: -color
