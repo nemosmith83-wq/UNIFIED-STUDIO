@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flux2-Klein &amp; InSwapper Neural AI Face Swap Studio v15 (Modeling Pro) — FadeL</title>
+<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f0f12;
+  --panel: #17171c;
+  --card: #1f1f27;
+  --border: #2b2b36;
+  --gold: #c9a86c;
+  --gold-light: #e0c79a;
+  --text: #ededf1;
+  --muted: #9898a5;
+  --green: #4caf7d;
+  --danger: #d86b73;
+}
+body {
+  font-family: 'Segoe UI', Tahoma, system-ui, sans-serif;
+  background: linear-gradient(135deg, #0f0f12 0%, #1a1a24 100%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 16px;
+}
+.container {
+  max-width: 1060px;
+  margin: 0 auto;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+  border: 1px solid var(--border);
+}
+.top-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+h1 {
+  background: linear-gradient(135deg, #e0c79a, #c9a86c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 1.6rem;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 4px;
+}
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.badge {
+  font-size: 0.76rem;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(201,168,108,0.12);
+  border: 1px solid rgba(201,168,108,0.4);
+  color: var(--gold-light);
+  font-weight: 600;
+}
+.badge.green {
+  background: rgba(76,175,125,0.14);
+  border-color: rgba(76,175,125,0.45);
+  color: #8de0b0;
+}
+.engine-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 20px;
+}
+.field label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--gold-light);
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.field select, .field input {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: #121217;
+  color: var(--text);
+  font-size: 0.86rem;
+}
+.grid-uploads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.upload-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+.upload-card h3 {
+  font-size: 0.98rem;
+  color: var(--gold-light);
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.upload-box {
+  border: 2px dashed #3a3a48;
+  border-radius: 14px;
+  padding: 26px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: #15151b;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.upload-box:hover {
+  border-color: var(--gold);
+  background: rgba(201,168,108,0.05);
+}
+.upload-box.has-image {
+  border-style: solid;
+  border-color: var(--green);
+  padding: 10px;
+}
+.upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+.upload-text { color: var(--muted); font-size: 0.9rem; }
+.upload-text strong { color: var(--gold-light); display: block; margin-bottom: 6px; font-size: 1.02rem; }
+input[type="file"] { display: none; }
+.preview {
+  max-width: 100%;
+  max-height: 290px;
+  border-radius: 10px;
+  display: none;
+  object-fit: contain;
+}
+.upload-box.has-image .upload-icon,
+.upload-box.has-image .upload-text { display: none; }
+.upload-box.has-image .preview { display: block; }
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  margin: 18px 0;
+}
+.btn {
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: linear-gradient(135deg, #c9a86c, #e0c79a);
+  color: #17171c;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(201,168,108,0.3);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn.secondary {
+  background: #252530;
+  color: var(--gold-light);
+  border: 1px solid var(--border);
+}
+.status {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 11px;
+  text-align: center;
+  display: none;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.status.show { display: block; }
+.status.loading {
+  background: rgba(201,168,108,0.1);
+  border: 1px solid var(--gold);
+  color: var(--gold-light);
+}
+.status.error {
+  background: rgba(216,107,115,0.12);
+  border: 1px solid var(--danger);
+  color: #f39aa0;
+}
+.status.success {
+  background: rgba(76,175,125,0.12);
+  border: 1px solid var(--green);
+  color: #8de0b0;
+}
+.result-section {
+  margin-top: 22px;
+  display: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+}
+.result-section.show { display: block; }
+.result-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.result-img {
+  max-width: 100%;
+  max-height: 680px;
+  border-radius: 14px;
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <div>
+      <h1>Flux2-Klein &amp; InSwapper Neural AI Face Swap v14</h1>
+      <p class="subtitle">متصل مباشرةً بـ linoyts/Flux2-Klein-Face-Swap و InSwapper_128 + جسر الأندرويد الأصلي FreeApp.http (تم إلغاء لصق الوجه ثنائي الأبعاد 100%)</p>
+    </div>
+    <div class="badge-row">
+      <span class="badge green" id="connBadge">⚡ v14 Native APK Bridge + Gradio handle_file Ready</span>
+      <span class="badge">linoyts/Flux2-Klein-Face-Swap</span>
+      <span class="badge">inswapper_128.onnx + GFPGANv1.4</span>
+    </div>
+  </div>
+
+  <div class="engine-bar">
+    <div class="field">
+      <label>محرك التبديل العصبي / Neural AI Engine</label>
+      <select id="engineMode">
+        <option value="auto_neural">Auto Neural Cascade (Flux2-Klein → InSwapper_128 → Remake v8.0 → Local app.py)</option>
+        <option value="flux2_direct">Direct HuggingFace: linoyts/Flux2-Klein-Face-Swap</option>
+        <option value="inswapper_spaces">Direct HuggingFace: InSwapper_128 + GFPGAN Spaces</option>
+        <option value="remake_v8">Remake AI v8.0 Cloud API (via Android Native HTTP Bridge)</option>
+        <option value="local_flask">Local PC (start.bat / app.py) or Custom Colab GPU URL</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>رابط الخادم المحلي أو Colab (اختياري) / Custom Server URL</label>
+      <input type="text" id="customServerUrl" placeholder="http://localhost:5000 or https://xxxx.gradio.live">
+    </div>
+    <div class="field">
+      <label>خطوات الاستدلال / Inference Steps (Flux2-Klein)</label>
+      <input type="number" id="stepsInput" value="4" min="1" max="28">
+    </div>
+    <div class="field">
+      <label>وضع صور الموديلينج والأزياء / Fashion Modeling Mode</label>
+      <select id="modelingCropMode">
+        <option value="smart_headshot" selected>✅ Smart Headshot Crop &amp; Restore (يعزل منطقة البورتريه فقط لمنع الرفض الخاطئ ومضاعفة دقة الوجه 4×)</option>
+        <option value="full_frame">Full Image Frame (إرسال الصورة الكاملة كما هي)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid-uploads">
+    <div class="upload-card">
+      <h3>
+        <span>1 — صورة الوش المرجعي (Reference Face)</span>
+        <button class="btn secondary" style="padding:5px 10px;font-size:0.75rem" onclick="document.getElementById('refInput').click()">تغيير / Change</button>
+      </h3>
+      <div class="upload-box" id="refBox" onclick="document.getElementById('refInput').click()">
+        <div class="upload-icon">👤</div>
+        <div class="upload-text">
+          <strong>ارفع صورة الوش (Reference Face)</strong>
+          اضغط هنا لاختيار صورة الوجه المراد نقله
+        </div>
+        <img class="preview" id="refPreview" alt="Reference preview" crossorigin="anonymous">
+      </div>
+      <input type="file" id="refInput" accept="image/*">
+    </div>
+
+    <div class="upload-card">
+      <h3>
+        <span>2 — الصورة الهدف (Target Image)</span>
+        <button class="btn secondary" style="padding:5px 10px;font-size:0.75rem" onclick="document.getElementById('tgtInput').click()">تغيير / Change</button>
+      </h3>
+      <div class="upload-box" id="tgtBox" onclick="document.getElementById('tgtInput').click()">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-text">
+          <strong>ارفع الصورة الهدف (Target Scene)</strong>
+          اضغط هنا لاختيار الصورة الهدف
+        </div>
+        <img class="preview" id="tgtPreview" alt="Target preview" crossorigin="anonymous">
+      </div>
+      <input type="file" id="tgtInput" accept="image/*">
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn" id="swapBtn" disabled>⚡ ابدأ التبديل العصبي الحقيقي / Run Real Neural Face Swap</button>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-header">
+      <h3 style="color:var(--gold-light)">النتيجة النهائية / Neural Swapped Output (<span id="engineUsedLabel">Flux2-Klein</span>)</h3>
+      <button class="btn" id="downloadBtn" type="button" style="padding:10px 20px;font-size:0.9rem">💾 حفظ في التنزيلات / Save to Downloads</button>
+    </div>
+    <img class="result-img" id="resultImg" alt="Result">
+  </div>
+</div>
+
+<script>
+const getFreeApp = () => window.FreeApp || (window.parent && window.parent.FreeApp) || (window.top && window.top.FreeApp) || null;
+const refInput = document.getElementById('refInput');
+const tgtInput = document.getElementById('tgtInput');
+const refBox = document.getElementById('refBox');
+const tgtBox = document.getElementById('tgtBox');
+const refPreview = document.getElementById('refPreview');
+const tgtPreview = document.getElementById('tgtPreview');
+const swapBtn = document.getElementById('swapBtn');
+const statusEl = document.getElementById('status');
+const resultSection = document.getElementById('resultSection');
+const resultImg = document.getElementById('resultImg');
+const downloadBtn = document.getElementById('downloadBtn');
+const engineUsedLabel = document.getElementById('engineUsedLabel');
+const connBadge = document.getElementById('connBadge');
+
+let refFile = null;
+let tgtFile = null;
+let lastResultUrl = '';
+
+function setStatus(text, type) {
+  statusEl.textContent = text;
+  statusEl.className = 'status show ' + type;
+}
+
+function handleFileSelect(file, previewEl, boxEl, isRef) {
+  if (!file) return;
+  if (isRef) refFile = file; else tgtFile = file;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    previewEl.src = ev.target.result;
+    boxEl.classList.add('has-image');
+    swapBtn.disabled = !(refPreview.src && tgtPreview.src);
+  };
+  reader.readAsDataURL(file);
+}
+
+refInput.addEventListener('change', e => handleFileSelect(e.target.files[0], refPreview, refBox, true));
+tgtInput.addEventListener('change', e => handleFileSelect(e.target.files[0], tgtPreview, tgtBox, false));
+
+async function dataUrlToBlob(dataUrl) {
+  const res = await fetch(dataUrl);
+  return await res.blob();
+}
+
+async function normalizeImageBlob(imgEl, fallbackBlob) {
+  try {
+    const w0 = imgEl.naturalWidth || imgEl.width || 1024;
+    const h0 = imgEl.naturalHeight || imgEl.height || 1024;
+    const maxDim = 1280;
+    const scale = Math.min(1, maxDim / Math.max(w0, h0));
+    const w = Math.max(64, Math.round((w0 * scale) / 64) * 64);
+    const h = Math.max(64, Math.round((h0 * scale) / 64) * 64);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+    const dataUrl = c.toDataURL('image/jpeg', 0.93);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.93));
+    return { blob: blob || fallbackBlob, dataUrl, width: w, height: h };
+  } catch (_) {
+    return { blob: fallbackBlob, dataUrl: imgEl.src, width: 1024, height: 1024 };
+  }
+}
+
+// 1. Official @gradio/client via esm.sh with handle_file (Matches user's app.py 100%!)
+async function callFlux2GradioClient(refBlob, tgtBlob, w, h, steps) {
+  const mod = await import('https://esm.sh/@gradio/client@1.8.0');
+  const Client = mod.Client || (mod.default && mod.default.Client);
+  const handle_file = mod.handle_file || (mod.default && mod.default.handle_file) || (b => b);
+  if (!Client) throw new Error('Gradio Client module not loaded');
+
+  const client = await Client.connect("linoyts/Flux2-Klein-Face-Swap");
+  let width = w, height = h;
+  try {
+    const dimRes = await client.predict("/update_dimensions_from_image", {
+      target_image: handle_file(tgtBlob)
+    });
+    if (dimRes && Array.isArray(dimRes.data) && dimRes.data.length >= 2) {
+      width = Number(dimRes.data[0]) || w;
+      height = Number(dimRes.data[1]) || h;
+    }
+  } catch (_) {}
+
+  const swapRes = await client.predict("/face_swap", {
+    reference_face: handle_file(refBlob),
+    target_image: handle_file(tgtBlob),
+    seed: 0,
+    randomize_seed: true,
+    width: width,
+    height: height,
+    num_inference_steps: Number(steps) || 4,
+    guidance_scale: 1
+  });
+
+  if (swapRes && swapRes.data && swapRes.data[0]) {
+    const pair = swapRes.data[0];
+    const afterItem = Array.isArray(pair) ? (pair[1] || pair[0]) : pair;
+    const url = typeof afterItem === 'string' ? afterItem : (afterItem && (afterItem.url || afterItem.path));
+    if (url) return url.startsWith('http') ? url : ('https://linoyts-flux2-klein-face-swap.hf.space/gradio_api/file=' + url);
+  }
+  throw new Error('Flux2-Klein returned empty output');
+}
+
+// 2. Native Fetch Gradio v4/v5 HTTP Client
+async function callGradioSpaceNativeHttp(spaceHost, apiName, buildPayloadFn, refBlob, tgtBlob) {
+  const prefixes = ['/gradio_api', ''];
+  let lastErr = null;
+  for (const prefix of prefixes) {
+    try {
+      const uploadUrl = spaceHost + prefix + '/upload';
+      const fd = new FormData();
+      fd.append('files', refBlob, 'reference.jpg');
+      fd.append('files', tgtBlob, 'target.jpg');
+      const upResp = await fetch(uploadUrl, { method: 'POST', body: fd });
+      if (!upResp.ok) continue;
+      const upPaths = await upResp.json();
+      if (!Array.isArray(upPaths) || upPaths.length < 2) continue;
+
+      const refFileObj = { path: upPaths[0], url: spaceHost + prefix + '/file=' + upPaths[0], orig_name: 'reference.jpg', mime_type: 'image/jpeg', meta: { _type: 'gradio.FileData' } };
+      const tgtFileObj = { path: upPaths[1], url: spaceHost + prefix + '/file=' + upPaths[1], orig_name: 'target.jpg', mime_type: 'image/jpeg', meta: { _type: 'gradio.FileData' } };
+
+      const callUrl = spaceHost + prefix + '/call/' + apiName.replace(/^\/+/, '');
+      const callResp = await fetch(callUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: buildPayloadFn(refFileObj, tgtFileObj) })
+      });
+      if (!callResp.ok) continue;
+      const callJson = await callResp.json();
+      const eventId = callJson && callJson.event_id;
+      if (!eventId) continue;
+
+      const sseResp = await fetch(callUrl + '/' + eventId);
+      if (!sseResp.ok) continue;
+      const sseText = await sseResp.text();
+      const lines = sseText.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('event: error')) {
+          const errData = lines[i + 1] ? lines[i + 1].replace(/^data:\s*/, '') : 'Space GPU queue busy';
+          throw new Error(errData);
+        }
+        if (lines[i].startsWith('event: complete') && lines[i + 1]) {
+          const rawJson = lines[i + 1].replace(/^data:\s*/, '');
+          const parsed = JSON.parse(rawJson);
+          const first = parsed[0];
+          const item = Array.isArray(first) ? (first[1] || first[0]) : first;
+          if (typeof item === 'string') return item;
+          if (item && item.url) return item.url;
+          if (item && item.path) return spaceHost + prefix + '/file=' + item.path;
+        }
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('Gradio HTTP call failed for ' + spaceHost);
+}
+
+// 3. Remake AI v8.0 Cloud API using FreeApp.http (Native Android HTTP bridge in freehtmltoapk!) or fetch
+async function tryRemakeV8NativeOrFetch(refDataUrl, tgtDataUrl) {
+  const b64Ref = refDataUrl.split(',')[1];
+  const b64Tgt = tgtDataUrl.split(',')[1];
+  const reqUrl = 'https://faceswap-image-transformation-api.p.rapidapi.com/faceswapgroup';
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-rapidapi-host': 'faceswap-image-transformation-api.p.rapidapi.com',
+    'x-rapidapi-key': '51c6b46905msh5fb8a3a72f82e53p15519ejsne9f86b99597e'
+  };
+  const bodyStr = JSON.stringify({ TargetImageBase64Data: b64Tgt, SourceImageBase64Data: b64Ref });
+
+  const fa = getFreeApp();
+  if (fa && typeof fa.http === 'function') {
+    const r = await fa.http({ url: reqUrl, method: 'POST', headers, body: bodyStr });
+    const data = r.json ? r.json() : JSON.parse(r.body);
+    if (data && (data.ResultImageUrl || data.image || data.result)) {
+      return data.ResultImageUrl || (data.image ? 'data:image/jpeg;base64,' + data.image : data.result);
+    }
+  }
+
+  const resp = await fetch(reqUrl, { method: 'POST', headers, body: bodyStr });
+  if (!resp.ok) throw new Error('RapidAPI HTTP ' + resp.status);
+  const data = await resp.json();
+  if (data && (data.ResultImageUrl || data.image || data.result)) {
+    return data.ResultImageUrl || (data.image ? 'data:image/jpeg;base64,' + data.image : data.result);
+  }
+  throw new Error('Empty response from Remake v8 API');
+}
+
+// 4. Local Flask / Colab Server (/api/swap from app.py)
+async function tryLocalFlaskSwap(refBlob, tgtBlob, customUrl) {
+  const base = (customUrl || '').trim().replace(/\/+$/, '');
+  if (!base && (location.protocol === 'file:' || location.origin === 'null' || location.hostname === 'appassets.androidplatform.net')) {
+    throw new Error('No local server URL configured');
+  }
+  const endpoint = base ? (base + '/api/swap') : '/api/swap';
+  const fd = new FormData();
+  fd.append('reference_face', refBlob, 'reference.jpg');
+  fd.append('target_image', tgtBlob, 'target.jpg');
+  const resp = await fetch(endpoint, { method: 'POST', body: fd });
+  const data = await resp.json();
+  if (!resp.ok || data.error) throw new Error(data.error || 'Flask server error');
+  return (base ? base : '') + data.result_url;
+}
+
+swapBtn.addEventListener('click', async function() {
+  if (!refPreview.src || !tgtPreview.src) return;
+  swapBtn.disabled = true;
+  resultSection.classList.remove('show');
+
+  const mode = document.getElementById('engineMode').value;
+  const customUrl = document.getElementById('customServerUrl').value;
+  const steps = Number(document.getElementById('stepsInput').value) || 4;
+
+  try {
+    const rawRef = refFile || await dataUrlToBlob(refPreview.src);
+    const rawTgt = tgtFile || await dataUrlToBlob(tgtPreview.src);
+    const normRef = await normalizeImageBlob(refPreview, rawRef);
+    const normTgt = await normalizeImageBlob(tgtPreview, rawTgt);
+
+    // Smart Fashion Modeling Headshot Isolation:
+    const modelingMode = document.getElementById('modelingCropMode') ? document.getElementById('modelingCropMode').value : 'smart_headshot';
+    let cropInfo = null;
+    if (modelingMode === 'smart_headshot') {
+      try {
+        setStatus('⏳ جاري عزل منطقة البورتريه والملامح تلقائياً من صورة الموديلينج لمضاعفة دقة الوجه 4× ومنع الرفض الخاطئ...', 'loading');
+        const origW = tgtPreview.naturalWidth || tgtPreview.width || 1024;
+        const origH = tgtPreview.naturalHeight || tgtPreview.height || 1024;
+        let faceBox = null;
+        if (window.faceapi) {
+          try {
+            const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model/';
+            await window.faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
+            const det = await window.faceapi.detectSingleFace(tgtPreview, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.25 }));
+            if (det && det.box) faceBox = det.box;
+          } catch (_) {}
+        }
+        if (faceBox && (faceBox.width < origW * 0.38 || faceBox.height < origH * 0.38)) {
+          const cx = faceBox.x + faceBox.width / 2;
+          const cy = faceBox.y + faceBox.height / 2;
+          const side = Math.min(Math.max(faceBox.width, faceBox.height) * 2.6, Math.min(origW, origH));
+          const sx = Math.max(0, Math.min(origW - side, Math.round(cx - side / 2)));
+          const sy = Math.max(0, Math.min(origH - side, Math.round(cy - side / 2)));
+          const sw = Math.round(Math.min(side, origW - sx));
+          const sh = Math.round(Math.min(side, origH - sy));
+          const headCanvas = document.createElement('canvas');
+          headCanvas.width = 768; headCanvas.height = 768;
+          headCanvas.getContext('2d').drawImage(tgtPreview, sx, sy, sw, sh, 0, 0, 768, 768);
+          const headBlob = await new Promise(r => headCanvas.toBlob(r, 'image/jpeg', 0.95));
+          const headDataUrl = headCanvas.toDataURL('image/jpeg', 0.95);
+          if (headBlob) {
+            cropInfo = { sx, sy, sw, sh, origW, origH };
+            normTgt.blob = headBlob;
+            normTgt.dataUrl = headDataUrl;
+            normTgt.width = 768;
+            normTgt.height = 768;
+          }
+        }
+      } catch (_) {}
+    }
+
+    let finalUrl = null;
+    let usedEngine = '';
+    const errors = [];
+
+    if (mode === 'local_flask' || (mode === 'auto_neural' && customUrl.trim())) {
+      try {
+        setStatus('⏳ جاري الاتصال بخادمك (app.py / Colab)...', 'loading');
+        finalUrl = await tryLocalFlaskSwap(normRef.blob, normTgt.blob, customUrl);
+        usedEngine = 'Local / Colab Server (app.py)';
+      } catch (e) {
+        errors.push('Local: ' + e.message);
+        if (mode === 'local_flask') throw e;
+      }
+    }
+
+    if (!finalUrl && (mode === 'flux2_direct' || mode === 'auto_neural')) {
+      try {
+        setStatus(`⏳ جاري الاتصال بـ linoyts/Flux2-Klein-Face-Swap (handle_file + ${normTgt.width}×${normTgt.height}, Steps: ${steps})... يستغرق 25–60 ثانية`, 'loading');
+        finalUrl = await callFlux2GradioClient(normRef.blob, normTgt.blob, normTgt.width, normTgt.height, steps);
+        usedEngine = 'linoyts/Flux2-Klein-Face-Swap (Gradio Client)';
+      } catch (e1) {
+        try {
+          setStatus('⏳ جاري الاتصال المباشر بـ linoyts/Flux2-Klein-Face-Swap عبر بروتوكول HTTP...', 'loading');
+          finalUrl = await callGradioSpaceNativeHttp(
+            'https://linoyts-flux2-klein-face-swap.hf.space',
+            'face_swap',
+            (rObj, tObj) => [rObj, tObj, 0, true, normTgt.width, normTgt.height, steps, 1],
+            normRef.blob,
+            normTgt.blob
+          );
+          usedEngine = 'linoyts/Flux2-Klein-Face-Swap (Direct HTTP)';
+        } catch (e2) {
+          errors.push('Flux2-Klein: ' + (e2.message || e1.message));
+          if (mode === 'flux2_direct') throw new Error(errors.join(' | '));
+        }
+      }
+    }
+
+    if (!finalUrl && (mode === 'inswapper_spaces' || mode === 'auto_neural')) {
+      const inswapperSpaces = [
+        { id: 'tonyassi/face-swap', host: 'https://tonyassi-face-swap.hf.space', api: 'swap_faces', build: (r, t) => [r, t] },
+        { id: 'felixrosberg/face-swap', host: 'https://felixrosberg-face-swap.hf.space', api: 'predict', build: (r, t) => [t, r, 0, 0] }
+      ];
+      for (const sp of inswapperSpaces) {
+        if (finalUrl) break;
+        try {
+          setStatus(`⏳ جاري الاتصال بمحرك InSwapper_128 العصبي (${sp.id})...`, 'loading');
+          finalUrl = await callGradioSpaceNativeHttp(sp.host, sp.api, sp.build, normRef.blob, normTgt.blob);
+          usedEngine = sp.id + ' (InSwapper_128 Neural)';
+        } catch (e3) {
+          errors.push(sp.id + ': ' + e3.message);
+        }
+      }
+    }
+
+    if (!finalUrl && (mode === 'remake_v8' || mode === 'auto_neural')) {
+      try {
+        setStatus('⏳ جاري الاتصال بمحرك Remake AI v8.0 عبر الجسر الأصلي...', 'loading');
+        finalUrl = await tryRemakeV8NativeOrFetch(normRef.dataUrl, normTgt.dataUrl);
+        usedEngine = 'Remake AI v8.0 Cloud API';
+      } catch (e4) {
+        errors.push('Remake v8: ' + e4.message);
+        if (mode === 'remake_v8') throw e4;
+      }
+    }
+
+    if (!finalUrl) {
+      throw new Error(
+        'جميع خوادم GPU العامة على Hugging Face مشغولة حالياً أو رفضت الصورة بسبب فلتر المحتوى العام (NSFW Filter). لم نقم بلصق أي قناع سطحي ثنائي الأبعاد للحفاظ على جودة صورتك! يمكنك المحاولة مرة أخرى أو تشغيل start.bat / دفتر Colab الخاص بك بدون أي فلاتر.'
+      );
+    }
+
+    if (cropInfo && finalUrl) {
+      try {
+        setStatus('⏳ جاري إعادة دمج البورتريه المُبدّل بالذكاء الاصطناعي داخل صورة الموديلينج الكاملة بدقتها الأصلية...', 'loading');
+        let swappedHeadImg = new Image();
+        try {
+          const bResp = await fetch(finalUrl);
+          const bBlob = await bResp.blob();
+          const bUrl = URL.createObjectURL(bBlob);
+          await new Promise((res, rej) => { swappedHeadImg.onload = res; swappedHeadImg.onerror = rej; swappedHeadImg.src = bUrl; });
+        } catch (_) {
+          swappedHeadImg = new Image();
+          swappedHeadImg.crossOrigin = 'anonymous';
+          await new Promise((res, rej) => { swappedHeadImg.onload = res; swappedHeadImg.onerror = rej; swappedHeadImg.src = finalUrl; });
+        }
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = cropInfo.origW;
+        fullCanvas.height = cropInfo.origH;
+        const fCtx = fullCanvas.getContext('2d');
+        fCtx.drawImage(tgtPreview, 0, 0, cropInfo.origW, cropInfo.origH);
+
+        const patchCanvas = document.createElement('canvas');
+        patchCanvas.width = cropInfo.sw;
+        patchCanvas.height = cropInfo.sh;
+        const pCtx = patchCanvas.getContext('2d');
+        pCtx.drawImage(swappedHeadImg, 0, 0, cropInfo.sw, cropInfo.sh);
+
+        const maskCanvas = document.createElement('canvas');
+        maskCanvas.width = cropInfo.sw;
+        maskCanvas.height = cropInfo.sh;
+        const mCtx = maskCanvas.getContext('2d');
+        const feather = Math.max(12, Math.round(cropInfo.sw * 0.06));
+        mCtx.filter = `blur(${feather}px)`;
+        mCtx.fillStyle = '#fff';
+        mCtx.fillRect(feather, feather, cropInfo.sw - feather * 2, cropInfo.sh - feather * 2);
+
+        pCtx.globalCompositeOperation = 'destination-in';
+        pCtx.drawImage(maskCanvas, 0, 0);
+        fCtx.drawImage(patchCanvas, cropInfo.sx, cropInfo.sy);
+        finalUrl = fullCanvas.toDataURL('image/png', 1.0);
+        usedEngine += ' + Smart Modeling Full-Res Restore';
+      } catch (reErr) {
+        console.warn('Headshot restore warning:', reErr);
+      }
+    }
+
+    lastResultUrl = finalUrl;
+    connBadge.textContent = '✅ Connected: ' + usedEngine;
+    engineUsedLabel.textContent = usedEngine;
+    resultImg.src = finalUrl;
+    resultSection.classList.add('show');
+    setStatus('✅ تم تبديل الوجه بالذكاء الاصطناعي العصبي بنجاح عبر: ' + usedEngine, 'success');
+  } catch (err) {
+    setStatus('⚠️ ' + (err.message || err), 'error');
+  } finally {
+    swapBtn.disabled = false;
+  }
+});
+
+downloadBtn.addEventListener('click', async function() {
+  if (!lastResultUrl) return;
+  const filename = 'FadeL_Neural_FaceSwap_' + Date.now() + '.png';
+  const fa = getFreeApp();
+  try {
+    const resp = await fetch(lastResultUrl);
+    const blob = await resp.blob();
+    if (fa && typeof fa.saveFile === 'function') {
+      await fa.saveFile(filename, blob.type || 'image/png', blob);
+      if (fa.toast) fa.toast('✅ تم حفظ الصورة في التنزيلات: ' + filename);
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (_) {
+    const a = document.createElement('a');
+    a.href = lastResultUrl; a.download = filename; a.target = '_blank';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+});
+</script>
+</body>
+</html>
