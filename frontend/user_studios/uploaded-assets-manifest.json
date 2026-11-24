@@ -1,0 +1,98 @@
+{
+  "manifestVersion": 1,
+  "sourceUploadCount": 20,
+  "project": "UNIFIED-STUDIO",
+  "branch": "complete-uploaded-assets",
+  "files": [
+    {
+      "original": "UVS_Fadel_Delivery.zip",
+      "integration": "current Unified Studio source and selected app modules merged; raw archive not embedded"
+    },
+    {
+      "original": "Free AI Face Swap For Photos & Videos(No Sign-up).mht",
+      "integration": "The New Era resource archive"
+    },
+    {
+      "original": "mahmoud_ahmed_clothing_FINAL_FIX.html",
+      "integration": "uploaded-assets library page"
+    },
+    {
+      "original": "MMM_Vox_Studio_Enhanced(1).html",
+      "integration": "uploaded-assets library page"
+    },
+    {
+      "original": "Open.Generative.AI.Setup.2.0.0.exe",
+      "integration": "Windows-only; not executable on Android and not bundled in APK"
+    },
+    {
+      "original": "PromptVault-Pro-Arabic-v12.html",
+      "integration": "uploaded-assets library page"
+    },
+    {
+      "original": "PromptVault-Pro-v13-RVC-Complete-Package.zip",
+      "integration": "PromptVault v13 + RVC page, notebook and Arabic guide are integrated; raw ZIP not embedded"
+    },
+    {
+      "original": "SKILL (1).md",
+      "integration": "uploaded source file"
+    },
+    {
+      "original": "Ultimate_ChatGPT_Prompt_Library.pdf",
+      "integration": "The New Era resource archive"
+    },
+    {
+      "original": "UNIFIED_STUDIO_ANDROID_FINAL_TESTED.zip",
+      "integration": "Android app source/tests reviewed; current 1.2 source is the build base"
+    },
+    {
+      "original": "FadeL_The_New_Era_Enhanced.zip",
+      "integration": "The New Era v16 source merged; signing key excluded"
+    },
+    {
+      "original": "FINAL_ANDROID_PACK.zip",
+      "integration": "current Android app source integrated; legacy nested archive not embedded"
+    },
+    {
+      "original": "MMM_Vox_Studio_Enhanced-2.html",
+      "integration": "uploaded-assets library page"
+    },
+    {
+      "original": "PromptVault-Pro-JPG.zip",
+      "integration": "18 visual guide pages integrated"
+    },
+    {
+      "original": "The_New_Era_v14_Website_Package_FRESH.zip",
+      "integration": "superseded by The New Era v16; current v16 integrated"
+    },
+    {
+      "original": "UnifiedStudio_Android_1.1.0_Final_Source.zip",
+      "integration": "superseded by corrected 1.2.0 source used for build"
+    },
+    {
+      "original": "XTTS_v2_Bilingual_Voice_Studio.html",
+      "integration": "uploaded-assets library page; invalid sentence-split regex fixed"
+    },
+    {
+      "original": "uvs-vault-2026-11-18.json",
+      "integration": "uploaded source file"
+    },
+    {
+      "original": "The_New_Era_Complete_Colab_APK_Factory.ipynb",
+      "integration": "uploaded source file and The New Era resource"
+    },
+    {
+      "original": "unified_comic_studio.html",
+      "integration": "uploaded-assets library page"
+    }
+  ],
+  "additionalUploadedPages": [
+    "Remake_AI_FaceSwap_v8_Studio.html",
+    "Flux2_Klein_FaceSwap_Studio_v14(5).html",
+    "Stable Diffusion Mobile PRO v11 — Flux.1 & Neural IP-Adapter Face.html",
+    "comic_factory_full.html"
+  ],
+  "securityExclusions": [
+    "BitLocker recovery-key text file",
+    "trial-signing-key(1).p12"
+  ]
+}
