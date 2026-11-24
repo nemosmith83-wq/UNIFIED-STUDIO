@@ -26,7 +26,7 @@ if manifest.get("sourceUploadCount") != 20 or len(manifest.get("files", [])) != 
 
 # Strip references to the optional shared helper, which is not shipped in this app.
 core_pattern = re.compile(
-    r'<script\\b[^>]*\\bsrc=["\\'][^"\\']*uvs-core\\.js[^"\\']*["\\'][^>]*>\\s*</script>',
+    r'<script\b[^>]*\\bsrc=["\\'][^"\\']*uvs-core\\.js[^"\\']*["\\'][^>]*>\\s*</script>',
     re.I,
 )
 roots = [frontend / "new-era/tools", target_studios]
