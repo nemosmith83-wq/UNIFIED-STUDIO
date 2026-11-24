@@ -111,6 +111,37 @@ jobs:
           PY
           echo "Integrated New Era source and 15 supplementary tools into Android assets."
           du -sh "$NEWERA"
+      - name: Fix Android first-admin setup key synchronization
+        working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          root = Path("app/src/main/python")
+          android = root / "android_server.py"
+          text = android.read_text(encoding="utf-8")
+          old = '    os.environ.setdefault("UVS_ADMIN_SETUP_KEY", _load_or_create_secret(os.path.join(private_dir, "uvs_admin_setup_key.txt")))'
+          new = '    os.environ["UVS_ADMIN_SETUP_KEY"] = _load_or_create_secret(os.path.join(private_dir, "uvs_admin_setup_key.txt"))'
+          if old not in text:
+              raise SystemExit("Android setup-key initialization source not found")
+          android.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          server = root / "server.py"
+          text = server.read_text(encoding="utf-8")
+          old = '        return {"available": True, "setup_key": os.environ.get("UVS_ADMIN_SETUP_KEY", "")}'
+          new = '''        setup_key = os.environ.get("UVS_ADMIN_SETUP_KEY", "")
+          if not setup_key:
+              raise HTTPException(status_code=503, detail="Local admin setup key unavailable.")
+          # Keep the bootstrap endpoint and the mounted API on the exact same key.
+          _admin_api.SETUP = setup_key
+          return {"available": True, "setup_key": setup_key}'''
+          if old not in text:
+              raise SystemExit("Local admin setup-key endpoint source not found")
+          server.write_text(text.replace(old, new, 1), encoding="utf-8")
+          print("Patched Android setup-key persistence and API synchronization.")
+          PY
+          python -m py_compile app/src/main/python/android_server.py app/src/main/python/server.py app/src/main/python/uvs_admin_api.py
+
       - name: Set Android app version and Chaquopy build Python
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
         run: |
