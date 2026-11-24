@@ -1,0 +1,381 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comic Factory – Potatoman & Salty</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+--bg:#0b0b0b;
+--panel:#f4edd7;
+--border:#1a1208;
+--gold:#e8c840;
+--accent:#c43020;
+--blue:#3da5ff;
+}
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:var(--bg);
+font-family:system-ui;
+color:white;
+}
+
+header{
+padding:14px 20px;
+border-bottom:2px solid var(--gold);
+display:flex;
+align-items:center;
+gap:20px;
+flex-wrap:wrap;
+}
+
+header h1{
+font-family:'Bangers',cursive;
+letter-spacing:.1em;
+margin:0;
+}
+
+.controls{
+display:flex;
+gap:8px;
+flex-wrap:wrap;
+}
+
+button{
+padding:8px 14px;
+border:none;
+cursor:pointer;
+font-weight:600;
+}
+
+.export{background:var(--gold)}
+.copy{background:#2e7cff;color:white}
+.clear{background:#555;color:white}
+.print{background:#27ae60;color:white}
+.mode{background:#444;color:white}
+
+.container{
+padding:26px;
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+gap:18px;
+}
+
+.panel{
+background:var(--panel);
+color:#111;
+border:3px solid var(--border);
+display:flex;
+flex-direction:column;
+}
+
+.image-zone{
+height:200px;
+background:#ddd;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+overflow:hidden;
+}
+
+.image-zone img{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+.panel-number{
+position:absolute;
+top:6px;
+left:8px;
+background:#000;
+color:var(--gold);
+padding:2px 8px;
+font-weight:bold;
+}
+
+.seed{
+font-family:'Space Mono';
+color:var(--blue);
+font-weight:bold;
+margin-bottom:6px;
+}
+
+.panel-body{
+padding:12px;
+display:flex;
+flex-direction:column;
+}
+
+.prompt{
+background:#eee;
+padding:10px;
+font-size:14px;
+margin-bottom:10px;
+border-left:3px solid var(--accent);
+}
+
+.actions{
+display:flex;
+gap:6px;
+flex-wrap:wrap;
+}
+
+.status{
+margin-top:8px;
+width:100%;
+}
+
+.dropzone{
+position:absolute;
+inset:0;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:14px;
+color:#333;
+background:rgba(255,255,255,.3);
+opacity:0;
+transition:.2s;
+}
+
+.image-zone.drag .dropzone{
+opacity:1;
+}
+
+.preview-mode .container{
+grid-template-columns:repeat(5,1fr);
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<h1>Comic Factory</h1>
+
+<div class="controls">
+<button class="export" onclick="exportPrompts()">Export Prompts</button>
+<button class="print" onclick="window.print()">Export PDF</button>
+<button class="clear" onclick="clearImages()">Clear Images</button>
+<button class="mode" onclick="toggleMode()">Toggle Page Preview</button>
+</div>
+
+</header>
+
+<div class="container" id="panels"></div>
+
+<script>
+
+const GLOBAL_SUFFIX =
+"Pixar-style 3D animation rendering, highly detailed, cinematic lighting, 4k, comic panel composition";
+
+const prompts=[
+"Epic aerial establishing shot of ancient Rome forum at dawn",
+"Medium shot Julius Caesar bored reading scroll",
+"Extreme close-up Caesar bored expression",
+"Roman soldiers marching across marble forum",
+"Roman soldier stumbling mid-air",
+"Roman soldier wearing modern sneakers holding rubber chicken",
+"Roman crowd shocked staring",
+"Caesar confused reaction",
+"Roman chariot entering forum carrying giant smartphone",
+"Roman charioteer using smartphone",
+"Marketplace chaos merchants shouting",
+"Senator toga moving magically",
+"Roman coins floating like planets",
+"Apples spinning on market table",
+"Cat wearing Roman helmet strutting",
+"Forum crowd frozen in disbelief",
+"Caesar commanding gesture",
+"Centurion shield reflecting scene",
+"Reflection behaving differently",
+"Caesar shocked expression",
+"Chariots floating above Rome",
+"Strongman juggling lions",
+"Roman senators interpretive dancing",
+"Rome panoramic chaos",
+"Citizen tripping over nothing",
+"Caesar wiping sweat at column",
+"Thought bubble montage",
+"Caesar nervous laugh",
+"Caesar wonder expression",
+"Final panel Caesar embracing chaos"
+];
+
+function loadState(){
+return JSON.parse(localStorage.getItem("comic_factory_state")||"{}");
+}
+
+function saveState(state){
+localStorage.setItem("comic_factory_state",JSON.stringify(state));
+}
+
+const state=loadState();
+
+function buildPanels(){
+
+const container=document.getElementById("panels");
+
+prompts.forEach((p,i)=>{
+
+const panel=document.createElement("div");
+panel.className="panel";
+
+panel.innerHTML=`
+
+<div class="image-zone" id="zone${i}">
+<span class="panel-number">P${i+1}</span>
+<img id="img${i}">
+<div class="dropzone">Drop Image</div>
+</div>
+
+<div class="panel-body">
+
+<div class="seed">Seed ${42001+i}</div>
+
+<div class="prompt" id="prompt${i}">${p}</div>
+
+<div class="actions">
+
+<button class="copy" onclick="copyPrompt(${i})">Copy</button>
+<input type="file" accept="image/*" onchange="loadImage(event,${i})">
+
+</div>
+
+<select class="status" onchange="updateStatus(${i},this.value)">
+<option>Not Generated</option>
+<option>Generated</option>
+<option>Approved</option>
+<option>Final</option>
+</select>
+
+</div>
+`;
+
+container.appendChild(panel);
+
+const zone=panel.querySelector(".image-zone");
+
+zone.addEventListener("dragover",e=>{
+e.preventDefault();
+zone.classList.add("drag");
+});
+
+zone.addEventListener("dragleave",()=>{
+zone.classList.remove("drag");
+});
+
+zone.addEventListener("drop",e=>{
+
+e.preventDefault();
+zone.classList.remove("drag");
+
+const file=e.dataTransfer.files[0];
+
+const reader=new FileReader();
+
+reader.onload=function(ev){
+document.getElementById("img"+i).src=ev.target.result;
+state["img"+i]=ev.target.result;
+saveState(state);
+};
+
+reader.readAsDataURL(file);
+
+});
+
+if(state["img"+i]){
+document.getElementById("img"+i).src=state["img"+i];
+}
+
+});
+
+}
+
+function copyPrompt(i){
+
+const text=
+document.getElementById("prompt"+i).innerText+
+", "+GLOBAL_SUFFIX;
+
+navigator.clipboard.writeText(text);
+
+}
+
+function loadImage(e,i){
+
+const reader=new FileReader();
+
+reader.onload=function(ev){
+
+document.getElementById("img"+i).src=ev.target.result;
+state["img"+i]=ev.target.result;
+saveState(state);
+
+};
+
+reader.readAsDataURL(e.target.files[0]);
+
+}
+
+function clearImages(){
+
+document.querySelectorAll("img").forEach(img=>img.src="");
+
+localStorage.removeItem("comic_factory_state");
+
+}
+
+function exportPrompts(){
+
+let txt="";
+
+prompts.forEach((p,i)=>{
+
+txt+=
+"P"+(i+1)+"\n"+
+p+", "+GLOBAL_SUFFIX+"\n\n";
+
+});
+
+const blob=new Blob([txt],{type:"text/plain"});
+const link=document.createElement("a");
+
+link.href=URL.createObjectURL(blob);
+link.download="comic_prompts.txt";
+
+link.click();
+
+}
+
+function toggleMode(){
+
+document.body.classList.toggle("preview-mode");
+
+}
+
+function updateStatus(i,val){
+
+state["status"+i]=val;
+saveState(state);
+
+}
+
+buildPanels();
+
+</script>
+
+</body>
+</html>
