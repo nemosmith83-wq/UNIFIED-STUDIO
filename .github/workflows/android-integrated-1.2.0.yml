@@ -224,13 +224,6 @@ jobs:
           path: gradle-build.log
           if-no-files-found: ignore
           retention-days: 7
-)"
-          test "$UPLOADED_HTML_COUNT" -ge 18
-          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
-          test "$TOOL_COUNT" -ge 15
-          echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
-          sha256sum "$APK"
-          file "$APK"
 
       - name: Upload verified integrated APK
         uses: actions/upload-artifact@v4
