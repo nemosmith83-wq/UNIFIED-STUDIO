@@ -4,6 +4,14 @@ on:
   workflow_run:
     workflows: ["Build Stable Diffusion Android ARM64 Engine"]
     types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/android-native.yml"
+      - "frontend/**"
+      - "backend/**"
+      - "android-native/**"
+      - "guides/**"
 
 permissions:
   contents: read
@@ -11,21 +19,31 @@ permissions:
 
 jobs:
   build:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == github.sha
+    if: github.event_name == 'push' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == github.sha)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
       - name: Checkout exact source that built the ARM64 engine
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Download ARM64 engine artifact from the successful engine run
+      - name: Download engine artifact from triggering successful engine run
+        if: github.event_name == 'workflow_run'
         uses: actions/download-artifact@v4
         with:
           name: stable-diffusion-android-arm64-cpu
           path: downloaded-engine
           run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download last verified ARM64 engine for source-only push rebuild
+        if: github.event_name == 'push'
+        uses: actions/download-artifact@v4
+        with:
+          name: stable-diffusion-android-arm64-cpu
+          path: downloaded-engine
+          run-id: 45418759486
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package engine as Android native libraries
