@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/android-integrated-1.2.0.yml"
       - "scripts/integrate_uploaded_assets.py"
+      - ".github/workflows/validate-uploaded-assets.yml"
 
 permissions:
   contents: read
