@@ -86,6 +86,9 @@ jobs:
           unzip -t new-era-tools.zip
           unzip -q new-era-tools.zip -d "$NEWERA"
           cp frontend/new-era/unified-launcher.html "$NEWERA/unified-launcher.html"
+          mkdir -p "$NEWERA/resources"
+          cp frontend/new-era/resources/uvs-vault-2026-11-18.json "$NEWERA/resources/"
+          cp frontend/new-era/resources/SKILL.md "$NEWERA/resources/"
 
           # Replace the packaged Stable Diffusion studio page with the corrected
           # API-origin version. The SD web server runs on :8766, while the app
@@ -117,6 +120,8 @@ jobs:
           test -s "$NEWERA/tools/Comics_Studio_RTL_PRO_v14.html"
           test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
           test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
+          test -s "$NEWERA/resources/uvs-vault-2026-11-18.json"
+          test -s "$NEWERA/resources/SKILL.md"
           # Remove optional shared-core script references from standalone tool pages.
           # The bridge is not part of the supplied tools pack; Comics Studio already has a localStorage fallback.
           python - <<'PY'
@@ -230,6 +235,8 @@ jobs:
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/Comics_Studio_RTL_PRO_v14.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/resources/promptvault-pages/PromptVault-Pro-page-18.jpg'
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/uvs-vault-2026-11-18.json"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/SKILL.md"
           TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
           test "$TOOL_COUNT" -ge 15
           echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
