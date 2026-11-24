@@ -66,6 +66,51 @@ jobs:
           ! grep -q 'ddgs==' "$PROJECT/app/build.gradle"
           echo "Verified corrected integrated source, backend, storyboard, character images and Android-compatible web-search fallback."
 
+      - name: Merge FadeL The New Era v16 and supplemental tools into the Android app
+        run: |
+          set -euo pipefail
+          PROJECT="source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0"
+          FRONTEND="$PROJECT/app/src/main/assets/frontend"
+          NEWERA="$FRONTEND/new-era"
+          mkdir -p "$NEWERA"
+
+          # The New Era v16 web/PWA source already used by this repository's APK workflow.
+          curl --fail --location --retry 4 --retry-all-errors --output new-era-v16.zip "https://nemo1sthelper.floot.app/_cdn/static/39c5ed47-f0fc-40dd-bdc8-8b23c5ea43ab-UVS_Fadel_v16_source.zip"
+          unzip -t new-era-v16.zip
+          unzip -q new-era-v16.zip -d "$NEWERA"
+          test -s "$NEWERA/index.html"
+
+          # Supplementary tools and references uploaded to the user's Floot project.
+          curl --fail --location --retry 4 --retry-all-errors --output new-era-tools.zip "https://fadel0newera.floot.app/_cdn/static/a96bfed9-8df1-45f0-9451-8166d5336b6a-the_new_era_unified_tools.zip"
+          echo "a8bd765b2d17da1f0df61b346020aea75077847b0d9db41f7e70a5347ec3ca43  new-era-tools.zip" | sha256sum --check
+          unzip -t new-era-tools.zip
+          unzip -q new-era-tools.zip -d "$NEWERA"
+          cp frontend/new-era/unified-launcher.html "$NEWERA/unified-launcher.html"
+          test -s "$NEWERA/tools/Comics_Studio_RTL_PRO_v14.html"
+          test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
+          test -s "$NEWERA/resources/RVC_Free_Mobile_Tool_Colab_FIXED.ipynb"
+
+          # Add a visible entry in the integrated studio navigation without removing existing tabs.
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          p = Path(os.environ["GITHUB_WORKSPACE"]) / "source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0/app/src/main/assets/frontend/index.html"
+          s = p.read_text(encoding="utf-8")
+          link = '<a class="nav-btn" href="/new-era/unified-launcher.html">FadeL The New Era + Tools</a>'
+          if link not in s:
+              start = s.find('<nav class="nav-tabs">')
+              if start >= 0:
+                  end = s.find('</nav>', start)
+                  if end >= 0:
+                      s = s[:end] + link + s[end:]
+                  else:
+                      raise SystemExit("Navigation closing tag not found")
+              else:
+                  s = s.replace('</body>', '<a href="/new-era/unified-launcher.html" style="position:fixed;z-index:99999;bottom:16px;right:16px;padding:12px 16px;background:#d9a85e;color:#17120b;border-radius:12px;font-weight:800;text-decoration:none">FadeL The New Era + Tools</a></body>')
+              p.write_text(s, encoding="utf-8")
+          PY
+          echo "Integrated New Era source and 15 supplementary tools into Android assets."
+          du -sh "$NEWERA"
       - name: Set Android app version and Chaquopy build Python
         working-directory: source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0
         run: |
