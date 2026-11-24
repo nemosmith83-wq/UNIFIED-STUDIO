@@ -141,6 +141,7 @@ jobs:
 
       - name: Verify APK signature, package and embedded app components
         run: |
+          set -euo pipefail
           APK="delivery/Unified-Studio-Android-1.2.0.apk"
           apksigner verify --verbose "$APK"
           aapt dump badging "$APK" | grep -E "package: name='com.unifiedstudio.android' versionCode='3' versionName='1.2.0'|application-label:'Unified Studio'"
@@ -150,26 +151,7 @@ jobs:
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/Comics_Studio_RTL_PRO_v14.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html'
           unzip -l "$APK" | grep -F 'assets/frontend/new-era/resources/promptvault-pages/PromptVault-Pro-page-18.jpg'
-          TOOL_COUNT="$(unzip -l "$APK" | grep -c 'assets/frontend/new-era/tools/.*\.html          sha256sum "$APK"
-          file "$APK"
-
-      - name: Upload verified integrated APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unified-Studio-Android-1.2.0-Integrated-APK
-          path: delivery/Unified-Studio-Android-1.2.0.apk
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Upload build diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unified-Studio-Android-1.2.0-Build-Logs
-          path: gradle-build.log
-          if-no-files-found: ignore
-          retention-days: 7
-)"
+          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html$')"
           test "$TOOL_COUNT" -ge 15
           echo "Verified The New Era app, launcher, 15+ standalone tools, and reference resources in the APK."
           sha256sum "$APK"
