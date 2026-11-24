@@ -68,6 +68,81 @@ jobs:
           file "$DEST/libsd-server.so" "$DEST/libsdserver_cxx.so"
           sha256sum "$DEST"/*.so
 
+      - name: Stage integrated Unified Hub and The New Era tools into native APK
+        run: |
+          set -euo pipefail
+          # Reconstruct the corrected Unified Studio 1.2.0 source package.
+          curl --fail --location --retry 4 --retry-all-errors --output source.part1 "https://nemo1sthelper.floot.app/_cdn/static/3de974b1-9d06-4f29-a946-34cf4b63d691-UVS_Fadel_1_2_0_final.part1"
+          curl --fail --location --retry 4 --retry-all-errors --output source.part2 "https://nemo1sthelper.floot.app/_cdn/static/437013db-f86d-4bf7-9233-309ccd7d73f9-UVS_Fadel_1_2_0_final.part2"
+          cat source.part1 source.part2 > integrated-source.zip
+          echo "50b57a61b2d6ce692e84334b4525c88ab1fb4d231a689d2cf3f8ffaf4fbd02b3  integrated-source.zip" | sha256sum --check
+          unzip -t integrated-source.zip
+          mkdir -p integrated-source
+          unzip -q integrated-source.zip -d integrated-source
+          PROJECT="integrated-source/Unified_Vision_Studio_FadeL_Integrated_Source_1.2.0"
+          HUB_SOURCE="$PROJECT/app/src/main/assets/frontend/unified-hub"
+          test -s "$HUB_SOURCE/index.html"
+          rm -rf frontend/unified-hub
+          mkdir -p frontend/unified-hub
+          cp -a "$HUB_SOURCE/." frontend/unified-hub/
+
+          # Stage the v16 PWA and the complete supplemental tools/resources pack.
+          cp frontend/new-era/unified-launcher.html /tmp/fadel-unified-launcher.html
+          NEWERA="frontend/new-era"
+          mkdir -p "$NEWERA"
+          curl --fail --location --retry 4 --retry-all-errors --output new-era-v16.zip "https://nemo1sthelper.floot.app/_cdn/static/39c5ed47-f0fc-40dd-bdc8-8b23c5ea43ab-UVS_Fadel_v16_source.zip"
+          unzip -t new-era-v16.zip
+          unzip -q new-era-v16.zip -d "$NEWERA"
+          curl --fail --location --retry 4 --retry-all-errors --output new-era-tools.zip "https://fadel0newera.floot.app/_cdn/static/a96bfed9-8df1-45f0-9451-8166d5336b6a-the_new_era_unified_tools.zip"
+          echo "a8bd765b2d17da1f0df61b346020aea75077847b0d9db41f7e70a5347ec3ca43  new-era-tools.zip" | sha256sum --check
+          unzip -t new-era-tools.zip
+          unzip -q new-era-tools.zip -d "$NEWERA"
+          cp /tmp/fadel-unified-launcher.html "$NEWERA/unified-launcher.html"
+          test -s "$NEWERA/index.html"
+          test -s "$NEWERA/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
+          test -s "$NEWERA/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
+          test -s "$NEWERA/resources/Free_AI_Face_Swap_Web_Archive.mht"
+
+          # Point the embedded hub to the app's local Stable Diffusion server
+          # and local Unified Studio API ports.
+          python - <<'PY'
+          from pathlib import Path
+          hub = Path("frontend/unified-hub/app.js")
+          text = hub.read_text(encoding="utf-8")
+          old = "const defaultSdBaseUrl = 'http://127.0.0.1:7860';"
+          new = "const defaultSdBaseUrl = 'http://127.0.0.1:8766';"
+          if old not in text:
+              raise SystemExit("Unified Hub SD base URL source not found")
+          hub.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          ta = Path("frontend/unified-hub/ta/app.js")
+          text = ta.read_text(encoding="utf-8")
+          old = '|| "http://127.0.0.1:5000/api"'
+          new = '|| "http://127.0.0.1:8765/api"'
+          if old not in text:
+              raise SystemExit("Unified Hub TA API base URL source not found")
+          ta.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          backend = Path("backend/server.py")
+          text = backend.read_text(encoding="utf-8")
+          if "http://127.0.0.1:8766" not in text:
+              start = text.find("allow_origins")
+              bracket = text.find("[", start)
+              if start < 0 or bracket < 0:
+                  raise SystemExit("Could not locate backend CORS allow_origins list")
+              additions = '\n        "http://127.0.0.1:8766", "http://localhost:8766",'
+              text = text[:bracket + 1] + additions + text[bracket + 1:]
+              backend.write_text(text, encoding="utf-8")
+          PY
+          grep -q "127.0.0.1:8766" frontend/unified-hub/app.js
+          grep -q "127.0.0.1:8765/api" frontend/unified-hub/ta/app.js
+          grep -q "http://127.0.0.1:8766" backend/server.py
+          if find frontend/new-era -type f \( -iname '*.p12' -o -iname '*bitlocker*' \) | grep -q .; then
+            echo "Refusing to package a signing key or recovery-key file."
+            exit 1
+          fi
+          echo "Unified Hub, New Era v16, 15+ tools, PromptVault/RVC resources, and local API ports staged."
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -114,11 +189,94 @@ jobs:
           fi
           sha256sum "$APK"
           file "$APK"
+          unzip -l "$APK" | grep -F "assets/frontend/unified-hub/index.html"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/unified-launcher.html"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/tools/PromptVault-Pro-Ultimate-Bilingual-v13-RVC-Integrated.html"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Ultimate_ChatGPT_Prompt_Library.pdf"
+          unzip -l "$APK" | grep -F "assets/frontend/new-era/resources/Free_AI_Face_Swap_Web_Archive.mht"
+          TOOL_COUNT="$(unzip -l "$APK" | grep -cE 'assets/frontend/new-era/tools/[^ ]+\.html
+          # Ensure every committed studio file is packaged, and every launcher
+          # link points to a real local file (no silent missing tools).
+          python - <<'PY'
+          import os, zipfile
+          from html.parser import HTMLParser
+          root = "frontend/user_studios"
+          apk = "android-native/app/build/outputs/apk/debug/app-debug.apk"
+          with zipfile.ZipFile(apk) as z:
+              packaged = set(z.namelist())
+              source_files = []
+              for base, _, files in os.walk(root):
+                  for filename in files:
+                      rel = os.path.relpath(os.path.join(base, filename), root).replace(os.sep, "/")
+                      source_files.append(rel)
+              missing = [rel for rel in source_files if "assets/frontend/user_studios/" + rel not in packaged]
+              if missing:
+                  raise SystemExit("APK missing committed studio files: " + ", ".join(missing))
+              with open(os.path.join(root, "index.html"), encoding="utf-8") as f:
+                  html = f.read()
+              class LinkParser(HTMLParser):
+                  def __init__(self):
+                      super().__init__()
+                      self.links = []
+                  def handle_starttag(self, tag, attrs):
+                      if tag.lower() == "a":
+                          self.links.extend(value for key, value in attrs if key.lower() == "href" and value)
+              parser = LinkParser()
+              parser.feed(html)
+              links = parser.links
+              broken = []
+              for href in links:
+                  if href.startswith(("http://", "https://", "mailto:", "tel:", "#", "javascript:")):
+                      continue
+                  target = os.path.normpath(os.path.join(root, href.split("?", 1)[0].split("#", 1)[0]))
+                  if not os.path.isfile(target):
+                      broken.append(href)
+              if broken:
+                  raise SystemExit("Broken local launcher links: " + ", ".join(broken))
+              print(f"Studio packaging check passed: {len(source_files)} source files, {len(links)} launcher links.")
+          PY
+
+      - name: Install and smoke-test APK on ARM64 Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: arm64-v8a
+          profile: pixel_2
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
+          script: |
+            set -euo pipefail
+            APK="android-native/app/build/outputs/apk/debug/app-debug.apk"
+            adb install -r "$APK"
+            START_OUTPUT="$(adb shell am start -W -n com.unifiedstudio.android/.MainActivity 2>&1)"
+            printf '%s\n' "$START_OUTPUT"
+            TOTAL_MS="$(printf '%s\n' "$START_OUTPUT" | awk -F: '/TotalTime/ {gsub(/[^0-9]/,"",$2); print $2; exit}')"
+            test -n "$TOTAL_MS"
+            test "$TOTAL_MS" -le 120000
+            adb shell pidof com.unifiedstudio.localsd
+            adb logcat -d -t 2000 > /tmp/unified-studio-logcat.txt
+            if grep -E "FATAL EXCEPTION|Process: com.unifiedstudio.localsd, PID" /tmp/unified-studio-logcat.txt; then
+              echo "Android runtime smoke test detected a fatal app crash."
+              exit 1
+            fi
+            echo "ARM64 startup smoke test passed; Activity TotalTime=${TOTAL_MS}ms."
+
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-studio-native-android-arm64-final
+          path: android-native/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+)"
+          test "$TOOL_COUNT" -ge 15
+          echo "Verified Unified Hub, New Era launcher, 15+ tools, and uploaded reference resources."
 
           # Ensure every committed studio file is packaged, and every launcher
           # link points to a real local file (no silent missing tools).
           python - <<'PY'
-          import os, zipfile\n          from html.parser import HTMLParser
+          import os, zipfile
+          from html.parser import HTMLParser
           root = "frontend/user_studios"
           apk = "android-native/app/build/outputs/apk/debug/app-debug.apk"
           with zipfile.ZipFile(apk) as z:
