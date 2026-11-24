@@ -25,10 +25,7 @@ if manifest.get("sourceUploadCount") != 20 or len(manifest.get("files", [])) != 
     raise SystemExit("Uploaded assets manifest must account for all 20 source files.")
 
 # Strip references to the optional shared helper, which is not shipped in this app.
-core_pattern = re.compile(
-    r'<script\b[^>]*\\bsrc=["\\'][^"\\']*uvs-core\\.js[^"\\']*["\\'][^>]*>\\s*</script>',
-    re.I,
-)
+core_pattern = re.compile(r'<script[^>]*uvs-core[.]js[^>]*>[^<]*</script>', re.I)
 roots = [frontend / "new-era/tools", target_studios]
 removed = {}
 for root in roots:
@@ -44,8 +41,8 @@ if removed.get("tools") != 8:
     raise SystemExit(f"Expected 8 optional uvs-core refs in New Era tools, removed {removed.get('tools')}.")
 
 # Fix invalid lookbehind quantifier in both XTTS copies.
-bad = r"(?<=[.!?؟।\\n])+"
-good = r"(?<=[.!?؟।\\n])"
+bad = "(?<=[.!?؟।\n])+"
+good = "(?<=[.!?؟।\n])"
 for page in [
     frontend / "new-era/tools/XTTS_v2_Bilingual_Voice_Studio.html",
     target_studios / "uploaded/XTTS_v2_Bilingual_Voice_Studio.html",
@@ -111,7 +108,7 @@ for page in pages:
             tail = check.stderr.splitlines()[-1] if check.stderr else "syntax error"
             errors.append(f"{page.name} inline script {i}: {tail}")
 if errors:
-    raise SystemExit("\\n".join(errors[:50]))
+    raise SystemExit(chr(10).join(errors[:50]))
 
 # Add both library entries to the app's main navigation without removing existing tabs.
 index = frontend / "index.html"
