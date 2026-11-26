@@ -399,7 +399,7 @@ jobs:
   runtime-smoke:
     needs: build
     if: needs.build.result == 'success'
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Download the verified native APK
@@ -416,7 +416,7 @@ jobs:
         with:
           api-level: 35
           target: google_apis
-          arch: arm64-v8a
+          arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 900
           emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
@@ -470,3 +470,90 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  web-tool-smoke:
+    needs: build
+    if: needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download verified APK
+        uses: actions/download-artifact@v4
+        with:
+          name: unified-studio-native-android-arm64-final-${{ github.run_id }}-${{ github.run_attempt }}
+          path: delivery
+
+      - name: Extract packaged frontend
+        run: |
+          set -euo pipefail
+          mkdir -p app
+          unzip -q delivery/app-debug.apk 'assets/frontend/*' -d app
+          test -s app/assets/frontend/index.html
+          test -s app/assets/frontend/new-era/unified-launcher.html
+          test -s app/assets/frontend/guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf
+          test -s app/assets/frontend/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Open every packaged HTML page in Chromium
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory app/assets/frontend --bind 127.0.0.1 >/tmp/frontend-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4173/index.html >/dev/null; then break; fi
+            sleep 1
+          done
+          cat > qa-web-smoke.cjs <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const path = require('path');
+          const root = path.resolve('app/assets/frontend');
+          const files = [];
+          function walk(dir) {
+            for (const item of fs.readdirSync(dir, {withFileTypes:true})) {
+              const full = path.join(dir, item.name);
+              if (item.isDirectory()) walk(full);
+              else if (item.isFile() && item.name.toLowerCase().endsWith('.html')) files.push(full);
+            }
+          }
+          walk(root);
+          files.sort();
+          (async () => {
+            const browser = await chromium.launch({headless:true});
+            const errors = [];
+            let opened = 0;
+            try {
+              const context = await browser.newContext();
+              for (const file of files) {
+                const page = await context.newPage();
+                page.on('pageerror', error => errors.push(path.relative(root,file)+': '+error.message));
+                try {
+                  const rel = path.relative(root,file).split(path.sep).join('/');
+                  const response = await page.goto('http://127.0.0.1:4173/'+rel,{waitUntil:'domcontentloaded',timeout:20000});
+                  if (!response || !response.ok()) errors.push(rel+': HTTP '+(response?response.status():'no response'));
+                  await page.waitForTimeout(500);
+                  const state = await page.locator('body').evaluate(el => ({text:el.innerText.length,children:el.children.length}));
+                  if (!state.children) errors.push(rel+': empty body');
+                  opened++;
+                } catch (error) {
+                  errors.push(path.relative(root,file)+': navigation '+error.message);
+                }
+                await page.close();
+              }
+              console.log('HTML pages opened:',opened,'/',files.length);
+              console.log('Uncaught browser page errors:',errors.length);
+              for (const error of errors) console.log('FAIL',error);
+              if (opened !== files.length || errors.length) process.exitCode=1;
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exit(1); });
+          JS
+          node qa-web-smoke.cjs
