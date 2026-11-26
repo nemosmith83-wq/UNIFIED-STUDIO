@@ -432,7 +432,10 @@ jobs:
           emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect -no-snapshot -no-snapshot-save
           script: |
             set -euo pipefail
-            APK="delivery/app-debug.apk"
+            echo "Downloaded artifact contents:"
+            find delivery -maxdepth 5 -type f -printf '%p (%s bytes)\\n'
+            APK="$(find delivery -type f -name '*.apk' -print -quit)"
+            test -n "$APK"
             test -s "$APK"
             adb install -r "$APK"
             START_OUTPUT="$(adb shell am start -W -n com.unifiedstudio.localsd/com.unifiedstudio.android.MainActivity 2>&1)"
