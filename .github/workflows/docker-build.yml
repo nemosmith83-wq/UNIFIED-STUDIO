@@ -110,7 +110,7 @@ jobs:
           # User-scoped memory create/read/delete.
           key="ci_qa_"+uuid.uuid4().hex[:8]
           assert call("/api/memories","POST",{"key":key,"value":{"check":"passed"}}).get("success")
-          assert call("/api/memories").get("memories",{}).get(key)=={"check":"passed"}
+          assert call("/api/memories").get("memories",{}).get(key,{}).get("value")=={"check":"passed"}
           assert call("/api/memories/"+key,"DELETE").get("success")
 
           # Automation create/run/delete.
