@@ -123,8 +123,8 @@ jobs:
           if not target.is_file():
               raise SystemExit(f"Expected bundled XTTS page missing: {target}")
           text = target.read_text(encoding="utf-8")
-          old = r"(?<=[.!?؟।\\n])+"
-          new = r"(?<=[.!?؟।\\n])"
+          old = r"(?<=[.!?؟।\n])+"
+          new = r"(?<=[.!?؟।\n])"
           count = text.count(old)
           if count != 1:
               raise SystemExit(f"Expected exactly one invalid XTTS lookbehind, found {count}")
