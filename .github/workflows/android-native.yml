@@ -197,7 +197,6 @@ jobs:
                   raise SystemExit(f"Missing staged guide for browser QA: {name}")
           print("Verified backend PromptVault/guide routes and staged guide files.")
           PY
-     PY
           # Remove optional shared-core references absent from the supplied tools pack.
           python - <<'PY'
           import re
