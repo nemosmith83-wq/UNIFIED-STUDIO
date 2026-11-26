@@ -115,6 +115,69 @@ jobs:
           echo "a8bd765b2d17da1f0df61b346020aea75077847b0d9db41f7e70a5347ec3ca43  new-era-tools.zip" | sha256sum --check
           unzip -t new-era-tools.zip
           unzip -q new-era-tools.zip -d "$NEWERA"
+          # Repair the invalid quantified lookbehind in the bundled bilingual XTTS tool,
+          # then syntax-check every inline JavaScript block before packaging.
+          python - <<'PY'
+          from pathlib import Path
+          target = Path("frontend/new-era/tools/XTTS_v2_Bilingual_Voice_Studio.html")
+          if not target.is_file():
+              raise SystemExit(f"Expected bundled XTTS page missing: {target}")
+          text = target.read_text(encoding="utf-8")
+          old = r"(?<=[.!?؟।\\n])+"
+          new = r"(?<=[.!?؟।\\n])"
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f"Expected exactly one invalid XTTS lookbehind, found {count}")
+          target.write_text(text.replace(old, new, 1), encoding="utf-8")
+          print("Patched XTTS sentence split regex.")
+          PY
+          python - <<'PY'
+          import subprocess, tempfile
+          from pathlib import Path
+          from html.parser import HTMLParser
+          roots = [Path("frontend/new-era/tools"), Path("frontend/user_studios"), Path("frontend/unified-hub")]
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.blocks = []
+                  self.active = None
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "script":
+                      self.active = (dict(attrs), [])
+              def handle_data(self, data):
+                  if self.active is not None:
+                      self.active[1].append(data)
+              def handle_endtag(self, tag):
+                  if tag.lower() == "script" and self.active is not None:
+                      self.blocks.append(self.active)
+                      self.active = None
+          checked = 0
+          failures = []
+          for root in roots:
+              if not root.exists():
+                  continue
+              for page in root.rglob("*.html"):
+                  parser = Scripts()
+                  parser.feed(page.read_text(encoding="utf-8", errors="replace"))
+                  for index, (attrs, parts) in enumerate(parser.blocks):
+                      kind = attrs.get("type", "").lower()
+                      if attrs.get("src") or kind in ("application/json", "application/ld+json", "text/template", "text/x-template"):
+                          continue
+                      code = "".join(parts).strip()
+                      if not code:
+                          continue
+                      checked += 1
+                      with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8", delete=False) as f:
+                          f.write(code)
+                          temp = Path(f.name)
+                      result = subprocess.run(["node", "--check", str(temp)], capture_output=True, text=True)
+                      temp.unlink(missing_ok=True)
+                      if result.returncode:
+                          failures.append(f"{page} script#{index}: {(result.stderr or result.stdout).strip()}")
+          if failures:
+              raise SystemExit("\\n".join(failures))
+          print(f"Inline JavaScript syntax audit passed: {checked} blocks.")
+          PY
           cp /tmp/fadel-unified-launcher.html "$NEWERA/unified-launcher.html"
           # Remove optional shared-core references absent from the supplied tools pack.
           python - <<'PY'
