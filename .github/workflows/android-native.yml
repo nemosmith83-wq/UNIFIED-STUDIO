@@ -429,7 +429,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           emulator-boot-timeout: 900
-          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect
+          emulator-options: -no-window -no-audio -no-boot-anim -camera-back none -gpu swiftshader_indirect -no-snapshot -no-snapshot-save
           script: |
             set -euo pipefail
             APK="delivery/app-debug.apk"
