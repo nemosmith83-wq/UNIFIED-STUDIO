@@ -139,7 +139,7 @@ jobs:
           if len(targets) != 3:
               raise SystemExit(f"Expected 3 packaged Comics Studio copies, found {len(targets)}")
           anchor = "const Printer = Save;"
-          definition = """const Scissors = makeIcon('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><path d="M14.8 14.8 20 20"/>');"""
+          definition = """const Scissors = makeIcon('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><path d="M14.8 14.8 20 20"/>'); const User = makeIcon('<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');"""
           for page in targets:
               text = page.read_text(encoding="utf-8")
               if text.count(anchor) != 1:
