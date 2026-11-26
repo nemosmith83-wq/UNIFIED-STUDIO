@@ -179,6 +179,32 @@ jobs:
           print(f"Inline JavaScript syntax audit passed: {checked} blocks.")
           PY
           cp /tmp/fadel-unified-launcher.html "$NEWERA/unified-launcher.html"
+          # Make the root PromptVault panel resolve inside the local WebView
+          # and expose the guides copied by the Android app under /guides.
+          mkdir -p frontend/guides
+          cp guides/PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf frontend/guides/
+          cp guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf frontend/guides/
+          python - <<'PY'
+          from pathlib import Path
+          page = Path("frontend/index.html")
+          text = page.read_text(encoding="utf-8")
+          replacements = {
+              'href="/promptvault"': 'href="/promptvault.html"',
+              'src="/promptvault"': 'src="/promptvault.html"',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"Expected one root PromptVault route {old!r}; found {text.count(old)}")
+              text = text.replace(old, new, 1)
+          page.write_text(text, encoding="utf-8")
+          for name in (
+              "PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf",
+              "RVC-Voice-Cloning-Mobile-Guide-AR.pdf",
+          ):
+              if not (Path("frontend/guides") / name).is_file():
+                  raise SystemExit(f"Missing staged guide: {name}")
+          print("Root PromptVault links and in-app guide paths corrected.")
+          PY
           # Remove optional shared-core references absent from the supplied tools pack.
           python - <<'PY'
           import re
