@@ -186,25 +186,18 @@ jobs:
           cp guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf frontend/guides/
           python - <<'PY'
           from pathlib import Path
-          page = Path("frontend/index.html")
-          text = page.read_text(encoding="utf-8")
-          replacements = {
-              'href="/promptvault"': 'href="/promptvault.html"',
-              'src="/promptvault"': 'src="/promptvault.html"',
-          }
-          for old, new in replacements.items():
-              if text.count(old) != 1:
-                  raise SystemExit(f"Expected one root PromptVault route {old!r}; found {text.count(old)}")
-              text = text.replace(old, new, 1)
-          page.write_text(text, encoding="utf-8")
+          backend = Path("backend/server.py").read_text(encoding="utf-8")
+          if '@app.get("/promptvault")' not in backend or '@app.get("/guides/{filename}")' not in backend:
+              raise SystemExit("Expected backend routes for PromptVault and PDF guides were not found")
           for name in (
               "PromptVault-Pro-Complete-Visual-Guide-AR-FINAL.pdf",
               "RVC-Voice-Cloning-Mobile-Guide-AR.pdf",
           ):
               if not (Path("frontend/guides") / name).is_file():
-                  raise SystemExit(f"Missing staged guide: {name}")
-          print("Root PromptVault links and in-app guide paths corrected.")
+                  raise SystemExit(f"Missing staged guide for browser QA: {name}")
+          print("Verified backend PromptVault/guide routes and staged guide files.")
           PY
+     PY
           # Remove optional shared-core references absent from the supplied tools pack.
           python - <<'PY'
           import re
@@ -536,6 +529,7 @@ jobs:
               for (const file of files) {
                 const page = await context.newPage();
                 page.on('pageerror', error => errors.push(path.relative(root,file)+': '+error.message));
+                await page.route('**/promptvault', route => route.fulfill({path:'app/assets/frontend/promptvault.html'}));
                 try {
                   const rel = path.relative(root,file).split(path.sep).join('/');
                   const response = await page.goto('http://127.0.0.1:4173/'+rel,{waitUntil:'domcontentloaded',timeout:20000});
