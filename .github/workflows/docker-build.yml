@@ -75,7 +75,9 @@ jobs:
               except HTTPError as e:
                   raw=e.read()
                   assert e.code == expected, (path,e.code,raw[:300])
-              return json.loads(raw) if raw and "json" in (response.headers.get("Content-Type","") if 'response' in locals() else "application/json") else raw
+              if path == "/promptvault" or path.startswith("/guides/"):
+                  return raw
+              return json.loads(raw)
 
           # Verify auth wall before creating a disposable CI-only user.
           try:
