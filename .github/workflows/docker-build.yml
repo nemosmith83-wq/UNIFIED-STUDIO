@@ -52,6 +52,85 @@ jobs:
               raise SystemExit(f"Container smoke test failed: {last_error}")
           PY
 
+      - name: Exercise authenticated API CRUD and local routes
+        run: |
+          python - <<'PY'
+          import json, time, uuid
+          from urllib.request import Request, build_opener
+          from urllib.error import HTTPError
+          from http.cookiejar import CookieJar
+
+          base = "http://127.0.0.1:8000"
+          jar = CookieJar()
+          opener = build_opener(__import__("urllib.request").request.HTTPCookieProcessor(jar))
+
+          def call(path, method="GET", payload=None, expected=200):
+              data = None if payload is None else json.dumps(payload).encode()
+              req = Request(base + path, data=data, method=method,
+                            headers={"Content-Type":"application/json"} if data else {})
+              try:
+                  with opener.open(req, timeout=8) as response:
+                      raw=response.read()
+                      assert response.status == expected, (path,response.status)
+              except HTTPError as e:
+                  raw=e.read()
+                  assert e.code == expected, (path,e.code,raw[:300])
+              return json.loads(raw) if raw and "json" in (response.headers.get("Content-Type","") if 'response' in locals() else "application/json") else raw
+
+          # Verify auth wall before creating a disposable CI-only user.
+          try:
+              opener.open(base + "/api/config", timeout=5)
+              raise AssertionError("Unauthenticated /api/config was not blocked")
+          except HTTPError as e:
+              assert e.code == 401
+          status=call("/api/auth/status")
+          assert status.get("authenticated") is False
+
+          username="qa_"+uuid.uuid4().hex[:12]
+          reg=call("/api/auth/register","POST",{
+              "username":username,"display_name":"CI QA","password":"TestPass-2026-Strong!"
+          })
+          assert reg.get("success") and reg.get("user",{}).get("username")==username
+          assert call("/api/auth/status").get("authenticated") is True
+
+          cfg=call("/api/config")
+          assert "engines" in cfg and "agents" in cfg and "providers" in cfg
+          assert call("/api/status").get("status")=="healthy"
+          assert isinstance(call("/api/providers/health"),dict)
+          assert isinstance(call("/api/providers/fallback").get("chain"),list)
+          assert isinstance(call("/api/sessions").get("sessions"),list)
+
+          # User-scoped memory create/read/delete.
+          key="ci_qa_"+uuid.uuid4().hex[:8]
+          assert call("/api/memories","POST",{"key":key,"value":{"check":"passed"}}).get("success")
+          assert call("/api/memories").get("memories",{}).get(key)=={"check":"passed"}
+          assert call("/api/memories/"+key,"DELETE").get("success")
+
+          # Automation create/run/delete.
+          automation=call("/api/automations","POST",{
+              "name":"CI QA automation","trigger_type":"manual","schedule":"","action":"test"
+          })["automation"]
+          assert call("/api/automations/"+automation["id"]+"/run","POST").get("success")
+          assert call("/api/automations/"+automation["id"],"DELETE").get("success")
+
+          # Workflow create/run and verify each step result.
+          workflow=call("/api/workflows","POST",{
+              "name":"CI QA workflow","steps":[{"name":"QA step 1"},{"name":"QA step 2"}]
+          })["workflow"]
+          results=call("/api/workflows/"+workflow["id"]+"/run","POST").get("results",[])
+          assert len(results)==2 and all(x.get("status")=="completed" for x in results)
+
+          # Authenticated local PromptVault and PDF guide routes.
+          html=call("/promptvault")
+          assert b"html" in html.lower()
+          guide=call("/guides/RVC-Voice-Cloning-Mobile-Guide-AR.pdf")
+          assert guide[:4]==b"%PDF"
+
+          call("/api/auth/logout","POST")
+          assert call("/api/auth/status").get("authenticated") is False
+          print("PASS: auth/register/login-session/logout, auth wall, config/status/provider/fallback reads, session list, memory CRUD, automation CRUD/run, workflow create/run, PromptVault and PDF guide routes.")
+          PY
+
       - name: Print container logs on failure
         if: failure()
         run: docker logs unified-studio-test || true
