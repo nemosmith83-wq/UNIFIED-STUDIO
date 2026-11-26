@@ -146,7 +146,7 @@ jobs:
                   raise SystemExit(f"Expected one icon insertion point in {page}")
               if "const Scissors = makeIcon(" in text:
                   raise SystemExit(f"Scissors icon already defined in {page}")
-              page.write_text(text.replace(anchor, anchor + "\\n" + definition, 1), encoding="utf-8")
+              page.write_text(text.replace(anchor, anchor + "\n" + definition, 1), encoding="utf-8")
           print("Added missing Scissors icon to all 3 Comics Studio copies.")
           PY
           python - <<'PY'
