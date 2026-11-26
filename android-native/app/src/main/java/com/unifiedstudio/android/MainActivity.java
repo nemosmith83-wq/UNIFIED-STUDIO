@@ -21,6 +21,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import android.widget.TextView;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
@@ -40,6 +41,7 @@ public class MainActivity extends Activity {
     private static final int MODEL_PICKER = 7002;
 
     private WebView webView;
+    private TextView startupStatus;
     private ValueCallback<Uri[]> fileCallback;
     private Process diffusionProcess;
     private volatile boolean sdServerReady = false;
@@ -54,6 +56,17 @@ public class MainActivity extends Activity {
         FrameLayout root = new FrameLayout(this);
         webView = new WebView(this);
         root.addView(webView, new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+
+        startupStatus = new TextView(this);
+        startupStatus.setText("Unified Studio\nجاري تجهيز التطبيق لأول مرة...");
+        startupStatus.setTextColor(Color.WHITE);
+        startupStatus.setTextSize(18);
+        startupStatus.setGravity(Gravity.CENTER);
+        startupStatus.setPadding(28, 28, 28, 28);
+        startupStatus.setBackgroundColor(Color.rgb(15, 22, 32));
+        root.addView(startupStatus, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
 
@@ -83,37 +96,70 @@ public class MainActivity extends Activity {
         setContentView(root);
 
         configureWebView();
-        try {
-            File frontend = new File(getFilesDir(), "frontend");
-            copyAssetTree("frontend", frontend);
+        new Thread(() -> {
+            try {
+                File frontend = new File(getFilesDir(), "frontend");
+                File guides = new File(getFilesDir(), "guides");
+                File marker = new File(getFilesDir(), ".unified-assets-1.2.0");
+                if (!marker.isFile()) {
+                    setStartupStatus("Unified Studio\nجاري تجهيز ملفات التطبيق...");
+                    copyAssetTree("frontend", frontend);
+                    copyAssetTree("guides", guides);
+                    try (FileOutputStream out = new FileOutputStream(marker)) {
+                        out.write("1.2.0".getBytes("UTF-8"));
+                        out.getFD().sync();
+                    }
+                }
 
-            File guides = new File(getFilesDir(), "guides");
-            copyAssetTree("guides", guides);
+                setStartupStatus("Unified Studio\nجاري إعداد مساحة العمل...");
+                File outputs = new File(getFilesDir(), "outputs");
+                if (!outputs.exists() && !outputs.mkdirs())
+                    throw new IOException("Cannot create outputs directory");
 
-            File outputs = new File(getFilesDir(), "outputs");
-            if (!outputs.exists() && !outputs.mkdirs())
-                throw new IOException("Cannot create outputs directory");
+                File db = new File(getFilesDir(), "data/unified.db");
+                File parent = db.getParentFile();
+                if (parent != null && !parent.exists() && !parent.mkdirs())
+                    throw new IOException("Cannot create database directory");
 
-            File db = new File(getFilesDir(), "data/unified.db");
-            File parent = db.getParentFile();
-            if (parent != null && !parent.exists() && !parent.mkdirs())
-                throw new IOException("Cannot create database directory");
+                modelsDir = new File(getFilesDir(), "models");
+                if (!modelsDir.exists() && !modelsDir.mkdirs())
+                    throw new IOException("Cannot create models directory");
 
-            modelsDir = new File(getFilesDir(), "models");
-            if (!modelsDir.exists() && !modelsDir.mkdirs())
-                throw new IOException("Cannot create models directory");
+                setStartupStatus("Unified Studio\nجاري بدء محرك الصور المحلي...");
+                startLocalDiffusionEngine();
 
-            startLocalDiffusionEngine();
+                setStartupStatus("Unified Studio\nجاري تشغيل خدمات التطبيق...");
+                Python py = Python.getInstance();
+                PyObject bridge = py.getModule("android_server");
+                bridge.callAttr("start_server", frontend.getAbsolutePath(),
+                        outputs.getAbsolutePath(), db.getAbsolutePath(), null);
+                waitForUnifiedServer();
+            } catch (Exception e) {
+                android.util.Log.e("UnifiedStudio", "Startup failed", e);
+                showStartupError(e);
+            }
+        }, "UnifiedStudioBootstrap").start();
+    }
 
-            Python py = Python.getInstance();
-            PyObject bridge = py.getModule("android_server");
-            bridge.callAttr("start_server", frontend.getAbsolutePath(),
-                    outputs.getAbsolutePath(), db.getAbsolutePath(), null);
-            waitForUnifiedServer();
-        } catch (Exception e) {
-            Toast.makeText(this, "Unified Studio startup failed: " + e.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
+    private void setStartupStatus(String message) {
+        runOnUiThread(() -> {
+            if (startupStatus != null) {
+                startupStatus.setText(message);
+                startupStatus.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    private void showStartupError(Exception error) {
+        runOnUiThread(() -> {
+            if (startupStatus != null) {
+                startupStatus.setText("تعذر تشغيل Unified Studio\n\n"
+                        + error.getClass().getSimpleName() + ": "
+                        + (error.getMessage() == null ? "بدون تفاصيل" : error.getMessage())
+                        + "\n\nأغلق التطبيق وافتحه مرة أخرى. إذا استمرت المشكلة، أرسل صورة هذه الشاشة.");
+                startupStatus.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     private void startLocalDiffusionEngine() {
@@ -368,7 +414,10 @@ public class MainActivity extends Activity {
                     connection.setReadTimeout(1200);
                     if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                         runOnUiThread(() -> {
-                            if (webView != null && !isFinishing()) webView.loadUrl(BASE_URL);
+                            if (webView != null && !isFinishing()) {
+                                webView.loadUrl(BASE_URL);
+                                if (startupStatus != null) startupStatus.setVisibility(View.GONE);
+                            }
                         });
                         return;
                     }
@@ -379,9 +428,15 @@ public class MainActivity extends Activity {
                 try { Thread.sleep(500); }
                 catch (InterruptedException e) { Thread.currentThread().interrupt(); return; }
             }
-            runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                    "Unified Studio server did not become ready. Check the bundled Python runtime.",
-                    Toast.LENGTH_LONG).show());
+            runOnUiThread(() -> {
+                if (startupStatus != null) {
+                    startupStatus.setText("خدمات Unified Studio لم تبدأ\n\nتحقق من مساحة التخزين ثم أعد فتح التطبيق.");
+                    startupStatus.setVisibility(View.VISIBLE);
+                }
+                Toast.makeText(MainActivity.this,
+                        "Unified Studio server did not become ready. Check the bundled Python runtime.",
+                        Toast.LENGTH_LONG).show();
+            });
         }, "UnifiedStudioHealthCheck").start();
     }
 
