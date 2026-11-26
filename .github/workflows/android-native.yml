@@ -542,7 +542,7 @@ jobs:
             const errors = [];
             let opened = 0;
             try {
-              const context = await browser.newContext();
+              const context = await browser.newContext({serviceWorkers:'block'});
               for (const file of files) {
                 const page = await context.newPage();
                 page.on('pageerror', error => errors.push(path.relative(root,file)+': '+error.message));
