@@ -131,6 +131,24 @@ jobs:
           target.write_text(text.replace(old, new, 1), encoding="utf-8")
           print("Patched XTTS sentence split regex.")
           PY
+          # Define the Scissors icon used by the Comics Studio in all staged copies.
+          python - <<'PY'
+          from pathlib import Path
+          targets = list(Path("frontend/new-era").rglob("Comics_Studio_RTL_PRO_v14.html"))
+          targets += list(Path("frontend/user_studios").rglob("Comics_Studio_RTL_PRO_v14.html"))
+          if len(targets) != 3:
+              raise SystemExit(f"Expected 3 packaged Comics Studio copies, found {len(targets)}")
+          anchor = "const Printer = Save;"
+          definition = """const Scissors = makeIcon('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><path d="M14.8 14.8 20 20"/>');"""
+          for page in targets:
+              text = page.read_text(encoding="utf-8")
+              if text.count(anchor) != 1:
+                  raise SystemExit(f"Expected one icon insertion point in {page}")
+              if "const Scissors = makeIcon(" in text:
+                  raise SystemExit(f"Scissors icon already defined in {page}")
+              page.write_text(text.replace(anchor, anchor + "\\n" + definition, 1), encoding="utf-8")
+          print("Added missing Scissors icon to all 3 Comics Studio copies.")
+          PY
           python - <<'PY'
           import subprocess, tempfile
           from pathlib import Path
@@ -529,6 +547,14 @@ jobs:
                 const page = await context.newPage();
                 page.on('pageerror', error => errors.push(path.relative(root,file)+': '+error.message));
                 await page.route('**/promptvault', route => route.fulfill({path:'app/assets/frontend/promptvault.html'}));
+                await page.route('http://127.0.0.1:8765/api/**', route => {
+                  const endpoint = new URL(route.request().url()).pathname;
+                  let data = {};
+                  if (endpoint.endsWith('/config')) data = {horde_models:[],style_presets:[],agents:[],character_options:{},clothes_options:{}};
+                  else if (endpoint.endsWith('/talent/jobs')) data = {jobs:[]};
+                  else if (endpoint.endsWith('/status')) data = {status:'healthy'};
+                  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+                });
                 try {
                   const rel = path.relative(root,file).split(path.sep).join('/');
                   const response = await page.goto('http://127.0.0.1:4173/'+rel,{waitUntil:'domcontentloaded',timeout:20000});
