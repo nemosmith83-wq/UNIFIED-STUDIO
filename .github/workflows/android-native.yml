@@ -553,7 +553,7 @@ jobs:
                   if (endpoint.endsWith('/config')) data = {horde_models:[],style_presets:[],agents:[],character_options:{},clothes_options:{}};
                   else if (endpoint.endsWith('/talent/jobs')) data = {jobs:[]};
                   else if (endpoint.endsWith('/status')) data = {status:'healthy'};
-                  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+                  return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(data)});
                 });
                 try {
                   const rel = path.relative(root,file).split(path.sep).join('/');
