@@ -23,7 +23,7 @@ jobs:
             --publish 127.0.0.1:8000:8000 \
             --env PORT=8000 \
             --env COOKIE_SECURE_ONLY=false \
-            --env ALLOW_REGISTRATION=false \
+            --env ALLOW_REGISTRATION=true \
             --env ENABLE_CODE_EXECUTION=false \
             unified-studio-test
 
@@ -94,6 +94,11 @@ jobs:
           })
           assert reg.get("success") and reg.get("user",{}).get("username")==username
           assert call("/api/auth/status").get("authenticated") is True
+          call("/api/auth/logout","POST")
+          login=call("/api/auth/login","POST",{
+              "username":username,"password":"TestPass-2026-Strong!"
+          })
+          assert login.get("success") and call("/api/auth/status").get("authenticated") is True
 
           cfg=call("/api/config")
           assert "engines" in cfg and "agents" in cfg and "providers" in cfg
