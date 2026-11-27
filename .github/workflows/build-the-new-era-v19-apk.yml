@@ -1,0 +1,80 @@
+name: Build The New Era v19 APK (free GitHub Actions)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "TheNewEra_v19_APK_BuildReady.zip"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout builder repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK platform and build tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Install Cordova CLI
+        run: npm install --global cordova@12
+
+      - name: Extract v19 project
+        run: |
+          test -f TheNewEra_v19_APK_BuildReady.zip
+          mkdir -p build-source
+          unzip -q TheNewEra_v19_APK_BuildReady.zip -d build-source
+          test -f build-source/TheNewEra_v19_APK_BuildReady/config.xml
+          echo "PROJECT_DIR=$GITHUB_WORKSPACE/build-source/TheNewEra_v19_APK_BuildReady" >> "$GITHUB_ENV"
+
+      - name: Run source verification
+        working-directory: build-source/TheNewEra_v19_APK_BuildReady
+        run: |
+          python3 tests/smoke_test.py
+          python3 tests/extended_verify.py
+
+      - name: Install Cordova Android and build debug APK
+        working-directory: build-source/TheNewEra_v19_APK_BuildReady
+        run: |
+          npm install --no-audit --no-fund
+          npx cordova platform add android@13
+          npx cordova build android --debug
+
+      - name: Verify APK package
+        working-directory: build-source/TheNewEra_v19_APK_BuildReady
+        run: |
+          APK="platforms/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "package: name='com.fadel.thenewera'|application-label:"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify "$APK"
+          sha256sum "$APK" | tee apk-sha256.txt
+
+      - name: Upload APK and build verification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: TheNewEra-v19-debug-APK
+          path: |
+            build-source/TheNewEra_v19_APK_BuildReady/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+            build-source/TheNewEra_v19_APK_BuildReady/apk-sha256.txt
+            build-source/TheNewEra_v19_APK_BuildReady/docs/EXTENDED_TEST_REPORT.json
+          if-no-files-found: error
+          retention-days: 14
